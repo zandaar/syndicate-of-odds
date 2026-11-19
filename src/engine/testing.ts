@@ -1,5 +1,6 @@
 // Aides réservées aux tests : fabriquer rapidement des Joueurs « de référence ».
 import { CLASSES } from '../data/classes';
+import { D } from './bignum';
 import type { ClassId, Player, Rarity } from './types';
 
 let nextId = 1;
@@ -17,6 +18,9 @@ export function makePlayer(classId: ClassId, overrides: Partial<Omit<Player, 'cl
     baseStats: overrides.baseStats ?? { ...CLASSES[classId].baseStats },
     traitIds: overrides.traitIds ?? [],
     level: overrides.level ?? 1,
+    reputation: overrides.reputation ?? D(0),
+    talents: overrides.talents ?? {},
+    bonusTalentPoints: overrides.bonusTalentPoints ?? 0,
     gear: overrides.gear ?? { accessory: null, gadget: null },
   };
 }

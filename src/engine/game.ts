@@ -3,10 +3,11 @@
 import { BALANCE } from '../data/balance';
 import { D, type Decimal } from './bignum';
 import { startTeamRun, tickTeam, type TeamEvent, type TeamRun } from './combat';
-import { buildTeamProfile, levelUpCost, type TeamProfile } from './economy';
+import { buildTeamProfile, gainReputation, type TeamProfile } from './economy';
 import { createRng, type Rng } from './random';
 import { dismissPlayer, generateCandidate, hireCandidate, openOffice, paidRefresh, refreshIfDue, type RecruitmentOffice } from './recruitment';
-import type { GlobalBonuses, Player } from './types';
+import { learnTalent, resetTalents, type TalentRefusal } from './talents';
+import type { ClassId, GlobalBonuses, Player } from './types';
 
 export interface TeamState {
   memberIds: string[];
@@ -33,7 +34,8 @@ export type TeamIndex = 0 | 1;
 export type GameAction =
   | { type: 'hire'; candidateId: string }
   | { type: 'refreshOffice' }
-  | { type: 'levelUp'; playerId: string; count: number | 'max' }
+  | { type: 'learnTalent'; playerId: string; talentId: string }
+  | { type: 'resetTalents'; playerId: string }
   | { type: 'assign'; playerId: string; team: TeamIndex | null }
   | { type: 'setTeamOptions'; team: TeamIndex; auto?: boolean; safeRetreat?: boolean }
   | { type: 'dismiss'; playerId: string }
@@ -46,7 +48,9 @@ export type GameError =
   | 'unknown-player'
   | 'team-full'
   | 'team-locked'
-  | 'last-player';
+  | 'last-player'
+  | 'not-enough-vip'
+  | TalentRefusal;
 
 export interface ActionResult {
   state: GameState;
@@ -66,6 +70,29 @@ export interface AdvanceResult {
 export const MAX_TICKS_PER_ADVANCE = 7200;
 
 const BONUSES: GlobalBonuses = { cashMult: 1 };
+
+/** Niveau de Maîtrise d'une Classe (étape 5B : encore à 0 pour toutes). */
+export function masteryLevel(_state: GameState, _classId: ClassId): number {
+  return 0;
+}
+
+function withPlayer(state: GameState, player: Player): GameState {
+  return { ...state, roster: state.roster.map((p) => (p.id === player.id ? player : p)) };
+}
+
+/**
+ * Après un changement de Talents, la Couverture maximale peut changer : on garde la Table en cours
+ * mais on ramène la Couverture dans les nouvelles limites.
+ */
+function refreshTeamOf(state: GameState, playerId: string): GameState {
+  const team = teamOf(state, playerId);
+  if (team === null) return state;
+  const run = state.teams[team].run;
+  if (run.phase.kind !== 'table') return state;
+  const max = teamProfile(state, team).maxCover;
+  const cover = run.phase.table.cover.gt(max) ? max : run.phase.table.cover;
+  return withTeam(state, team, { ...state.teams[team], run: { ...run, phase: { kind: 'table', table: { ...run.phase.table, cover } } } });
+}
 
 export function isTeamUnlocked(state: GameState, team: TeamIndex): boolean {
   return team === 0 || state.highestCleared >= BALANCE.secondTeamFloor;
@@ -157,22 +184,20 @@ export function applyAction(state: GameState, action: GameAction, now: number): 
       return { state: { ...state, office: result.office, cash: result.cash }, error: null };
     }
 
-    case 'levelUp': {
+    case 'learnTalent': {
       const player = state.roster.find((p) => p.id === action.playerId);
       if (!player) return fail(state, 'unknown-player');
-      const wanted = action.count === 'max' ? 10_000 : action.count;
-      let cash = state.cash;
-      let level = player.level;
-      for (let i = 0; i < wanted; i++) {
-        const cost = levelUpCost({ ...player, level });
-        if (cash.lt(cost)) break;
-        cash = cash.sub(cost);
-        level += 1;
-      }
-      const bought = level - player.level;
-      if (bought === 0 || (action.count !== 'max' && bought < action.count)) return fail(state, 'not-enough-cash');
-      const roster = state.roster.map((p) => (p.id === player.id ? { ...p, level } : p));
-      return { state: { ...state, roster, cash }, error: null };
+      const result = learnTalent(player, action.talentId, masteryLevel(state, player.classId));
+      if (result.refusal) return fail(state, result.refusal);
+      return { state: refreshTeamOf(withPlayer(state, result.player), player.id), error: null };
+    }
+
+    case 'resetTalents': {
+      const player = state.roster.find((p) => p.id === action.playerId);
+      if (!player) return fail(state, 'unknown-player');
+      if (state.vip < BALANCE.talents.respecVip) return fail(state, 'not-enough-vip');
+      const next = { ...withPlayer(state, resetTalents(player)), vip: state.vip - BALANCE.talents.respecVip };
+      return { state: refreshTeamOf(next, player.id), error: null };
     }
 
     case 'assign': {
@@ -205,7 +230,7 @@ export function applyAction(state: GameState, action: GameAction, now: number): 
       if (!state.roster.some((p) => p.id === action.playerId)) return fail(state, 'unknown-player');
       if (state.roster.length === 1) return fail(state, 'last-player');
       const unassigned = applyAction(state, { type: 'assign', playerId: action.playerId, team: null }, now).state;
-      const result = dismissPlayer(unassigned.roster, action.playerId);
+      const result = dismissPlayer(unassigned.roster, action.playerId, state.highestCleared);
       return { state: { ...unassigned, roster: result.roster, cash: unassigned.cash.add(result.refund) }, error: null };
     }
 
@@ -228,6 +253,7 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
   let highestCleared = state.highestCleared;
   let jackpots = state.stats.jackpots;
   const events: GameEvent[] = [];
+  const teamReputation = [D(0), D(0)];
 
   for (let tick = 0; tick < ticks; tick++) {
     for (const team of [0, 1] as const) {
@@ -235,6 +261,7 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
       const outcome = tickTeam(runs[team], profiles[team], { highestCleared }, rng);
       runs[team] = outcome.run;
       cash = cash.add(outcome.cash);
+      teamReputation[team] = teamReputation[team]!.add(outcome.reputation);
       vip += outcome.vip;
       if (outcome.clearedFloor !== null) highestCleared = Math.max(highestCleared, outcome.clearedFloor);
       for (const event of outcome.events) {
@@ -244,8 +271,17 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
     }
   }
 
+  // La Réputation est partagée à parts égales entre les membres de chaque Équipe.
+  const roster = state.roster.map((player) => {
+    const team = teamOf(state, player.id);
+    if (team === null) return player;
+    const share = teamReputation[team]!.div(state.teams[team].memberIds.length);
+    return gainReputation(player, share);
+  });
+
   const next: GameState = {
     ...state,
+    roster,
     cash,
     vip,
     highestCleared,

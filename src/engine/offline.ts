@@ -19,17 +19,20 @@ export interface OfflineReport {
   seconds: number;
   cash: Decimal;
   perTeam: Decimal[];
+  /** Réputation gagnée par chaque Équipe (à partager entre ses membres). */
+  reputationPerTeam: Decimal[];
 }
 
 /** Sécurité : un cycle ne peut pas dépasser ce nombre de ticks. */
 const MAX_CYCLE_TICKS = 20_000;
 
-/** Cash moyen par seconde d'une Équipe qui rejoue son Étage. */
-export function cashPerSecondOnFloor(team: OfflineTeam): Decimal {
-  if (team.profile.members.length === 0) return ZERO;
+/** Cash et Réputation moyens par seconde d'une Équipe qui rejoue son Étage. */
+export function ratesOnFloor(team: OfflineTeam): { cash: Decimal; reputation: Decimal } {
+  if (team.profile.members.length === 0) return { cash: ZERO, reputation: ZERO };
 
   let run = startTeamRun(team.run.floor, team.profile, { auto: false, safeRetreat: false });
   let cash = D(0);
+  let reputation = D(0);
   let ticks = 0;
   let cycleDone = false;
 
@@ -37,6 +40,7 @@ export function cashPerSecondOnFloor(team: OfflineTeam): Decimal {
     const outcome = tickTeam(run, team.profile, { highestCleared: Number.MAX_SAFE_INTEGER }, 'expected');
     run = outcome.run;
     cash = cash.add(outcome.cash);
+    reputation = reputation.add(outcome.reputation);
     ticks += 1;
     if (outcome.events.some((event) => event.type === 'victory')) break;
     if (outcome.events.some((event) => event.type === 'burned')) cycleDone = true;
@@ -44,7 +48,13 @@ export function cashPerSecondOnFloor(team: OfflineTeam): Decimal {
     if (cycleDone && run.phase.kind === 'table') break;
   }
 
-  return cash.div(ticks * BALANCE.tickSeconds);
+  const seconds = ticks * BALANCE.tickSeconds;
+  return { cash: cash.div(seconds), reputation: reputation.div(seconds) };
+}
+
+/** Cash moyen par seconde d'une Équipe qui rejoue son Étage. */
+export function cashPerSecondOnFloor(team: OfflineTeam): Decimal {
+  return ratesOnFloor(team).cash;
 }
 
 /** Gains de toutes les Équipes pendant `elapsedSeconds` d'absence. */
@@ -54,7 +64,9 @@ export function computeOfflineGains(
   capSeconds: number = BALANCE.offlineCapSeconds,
 ): OfflineReport {
   const seconds = Math.max(0, Math.min(elapsedSeconds, capSeconds));
-  const perTeam = teams.map((team) => cashPerSecondOnFloor(team).mul(seconds * team.profile.offlineMult));
+  const rates = teams.map((team) => ({ team, rates: ratesOnFloor(team) }));
+  const perTeam = rates.map(({ team, rates: r }) => r.cash.mul(seconds * team.profile.offlineMult));
+  const reputationPerTeam = rates.map(({ team, rates: r }) => r.reputation.mul(seconds * team.profile.offlineMult));
   const cash = perTeam.reduce((total, value) => total.add(value), D(0));
-  return { seconds, cash, perTeam };
+  return { seconds, cash, perTeam, reputationPerTeam };
 }

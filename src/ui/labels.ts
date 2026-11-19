@@ -31,4 +31,11 @@ export const ERROR_TEXT: Record<GameError, string> = {
   'team-full': 'Cette Équipe compte déjà 3 Joueurs.',
   'team-locked': "L'Équipe 2 se débloque après l'Étage 10.",
   'last-player': 'Impossible de renvoyer ton dernier Joueur.',
+  'not-enough-vip': 'Pas assez de Jetons VIP.',
+  'unknown-talent': 'Ce Talent est inconnu.',
+  'wrong-class': "Ce Talent n'est pas de cette Classe.",
+  'no-points': 'Plus de point de Talent : gagne de la Réputation pour monter de niveau.',
+  'max-rank': 'Ce Talent est déjà au rang maximal.',
+  'locked-points': "Mets d'abord plus de points dans cette branche.",
+  'locked-mastery': 'Talent ultime : il faut la Maîtrise de Classe 5.',
 };

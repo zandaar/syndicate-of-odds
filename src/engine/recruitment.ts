@@ -4,7 +4,7 @@ import { CLASSES } from '../data/classes';
 import { LEGENDARIES } from '../data/names/legendaries';
 import { TRAITS } from '../data/traits';
 import { D, type Decimal } from './bignum';
-import { levelUpCost, recruitCost } from './economy';
+import { recruitCost } from './economy';
 import { generateIdentity, pick } from './names';
 import { createRng, type Rng } from './random';
 import type { BaseStats, ClassId, Player, Rarity, StatId } from './types';
@@ -81,6 +81,9 @@ export function generateCandidate(rng: Rng, options: CandidateOptions): Player {
     baseStats,
     traitIds,
     level: 1,
+    reputation: D(0),
+    talents: {},
+    bonusTalentPoints: 0,
     gear: { accessory: null, gadget: null },
   };
 }
@@ -166,19 +169,14 @@ export function hireCandidate(
   };
 }
 
-/** Cash total dépensé pour amener un Joueur à son niveau actuel. */
-export function cashSpentOnLevels(player: Player): Decimal {
-  let total = D(0);
-  for (let level = 1; level < player.level; level++) total = total.add(levelUpCost({ ...player, level }));
-  return total;
+/** Cash rendu quand on renvoie ce Joueur : une part de son prix d'embauche actuel. */
+export function dismissRefund(player: Player, highestFloor: number): Decimal {
+  return recruitCost(player.rarity, highestFloor).mul(BALANCE.office.dismissRefund);
 }
 
-/** Renvoie un Joueur : il quitte le roster et rend une partie du Cash investi. */
-export function dismissPlayer(roster: Player[], playerId: string): { roster: Player[]; refund: Decimal } {
+/** Renvoie un Joueur : il quitte le roster et rend une part de son prix d'embauche. */
+export function dismissPlayer(roster: Player[], playerId: string, highestFloor: number): { roster: Player[]; refund: Decimal } {
   const player = roster.find((p) => p.id === playerId);
   if (!player) return { roster, refund: D(0) };
-  return {
-    roster: roster.filter((p) => p.id !== playerId),
-    refund: cashSpentOnLevels(player).mul(BALANCE.office.dismissRefund),
-  };
+  return { roster: roster.filter((p) => p.id !== playerId), refund: dismissRefund(player, highestFloor) };
 }

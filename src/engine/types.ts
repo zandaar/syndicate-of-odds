@@ -29,8 +29,40 @@ export type Modifier =
   | { kind: 'statPercent'; stat: StatId; value: number }
   /** owner — augmente le drain (0,1 = +10 %) sur tous les Étages, les Boss ou les Étages normaux. */
   | { kind: 'drain'; on: 'all' | 'boss' | 'normal'; value: number }
-  /** owner — augmente la puissance des Jackpots (0,25 = Jackpots ×2,5 au lieu de ×2). */
-  | { kind: 'jackpotPower'; value: number }
+  /** owner — augmente la puissance des Jackpots (0,25 = Jackpots ×2,5 au lieu de ×2), partout ou contre les Boss. */
+  | { kind: 'jackpotPower'; value: number; on?: 'boss' }
+  /** owner — un Jackpot a cette chance d'en relancer un autre (multiplié une seconde fois). */
+  | { kind: 'chainJackpot'; chance: number }
+  /** owner — chaque Jackpot d'affilée renforce le suivant, jusqu'à `cap`. */
+  | { kind: 'jackpotStreak'; perStep: number; cap: number }
+  /** owner — Rafle augmentée quand la Couverture passe sous `threshold` (part de la Couverture maximale). */
+  | { kind: 'lowCoverDrain'; threshold: number; value: number }
+  /** owner — la montée en puissance démarre déjà à cette part de son plafond. */
+  | { kind: 'rampStart'; fraction: number }
+  /** owner — la montée en puissance n'a plus de plafond. */
+  | { kind: 'rampUncapped' }
+  /** owner — contre un Boss, Rafle augmentée quand sa Caisse passe sous `threshold`. */
+  | { kind: 'bossFinisher'; threshold: number; value: number }
+  /** team — une fois par Table, l'Équipe survit avec un reste de Couverture. */
+  | { kind: 'lastStand' }
+  /** team — Discrétion augmentée contre les Boss (1 = doublée). */
+  | { kind: 'bossStealth'; value: number }
+  /** team — cette part des Soupçons subis est raflée dans la Caisse. */
+  | { kind: 'reflect'; value: number }
+  /** team — Flair donné par les auras augmenté contre les Boss (1 = doublé). */
+  | { kind: 'bossAura'; value: number }
+  /** team — Réputation gagnée. */
+  | { kind: 'reputation'; value: number }
+  /** team — prime de fin d'Étage augmentée sur les Boss. */
+  | { kind: 'bossFloorBonus'; value: number }
+  /** team — chance de trouver 1 Jeton VIP en validant un Étage normal. */
+  | { kind: 'vipFind'; chance: number }
+  /** team — Pression réduite pendant `duration` ticks, tous les `every` ticks. */
+  | { kind: 'blackout'; every: number; duration: number; value: number }
+  /** team — la sécurité rate une attaque sur `every`. */
+  | { kind: 'dodge'; every: number }
+  /** team — les Boss démarrent avec cette part de Caisse en moins. */
+  | { kind: 'bossVaultCut'; value: number }
   /** owner — une attaque sur `every` est forcément un Jackpot. */
   | { kind: 'guaranteedJackpot'; every: number }
   /** owner — ne déclenche jamais de Jackpot. */
@@ -71,6 +103,12 @@ export interface Player {
   baseStats: BaseStats;
   traitIds: string[];
   level: number;
+  /** Réputation accumulée vers le niveau suivant. */
+  reputation: Decimal;
+  /** Rangs pris dans chaque Talent (identifiant → rang). */
+  talents: Record<string, number>;
+  /** Points de Talent offerts à l'embauche (Maîtrise de Classe). */
+  bonusTalentPoints: number;
   gear: Record<GearSlot, string | null>;
 }
 

@@ -53,10 +53,10 @@ describe('le Bureau de recrutement', () => {
     expect(hireCandidate({ office, roster: [], cash: D(1e9), highestFloor: 0 }, 'inconnu')).toEqual({ ok: false, reason: 'unknown-candidate' });
   });
 
-  it('renvoyer un Joueur rend 50 % du Cash dépensé en niveaux', () => {
+  it("renvoyer un Joueur rend 50 % de son prix d'embauche actuel", () => {
     const veteran = makePlayer('gambler', { level: 3 });
-    const result = dismissPlayer([veteran, makePlayer('bluffer')], veteran.id);
-    expect(result.refund.toNumber()).toBe(1650);
+    const result = dismissPlayer([veteran, makePlayer('bluffer')], veteran.id, 0);
+    expect(result.refund.toNumber()).toBe(25);
     expect(result.roster.map((p) => p.id)).not.toContain(veteran.id);
     expect(result.roster).toHaveLength(1);
   });

@@ -35,8 +35,25 @@ export const BALANCE = {
   /** Jackpot : Rafle ×baseMult ; chance de Jackpot plafonnée. */
   jackpot: { baseMult: 2, maxChance: 0.75 },
 
-  /** Niveaux : stats ×statGrowth par niveau ; coût = costBase × costGrowth^(niveau − 1). */
-  level: { statGrowth: 1.08, costGrowth: 1.2, costBase: 1500 },
+  /** Niveaux : stats ×statGrowth par niveau. */
+  level: { statGrowth: 1.08 },
+
+  /**
+   * Réputation : il faut base × growth^(niveau − 1) de Réputation pour passer au niveau suivant.
+   * À la Table, l'Équipe gagne autant de Réputation que de Cash raflé (partagée entre ses membres),
+   * plus floorBonusRatio × la Caisse à chaque Étage validé.
+   */
+  reputation: { base: 5000, growth: 1.2, floorBonusRatio: 0.3 },
+
+  /** Arbres de Talents. */
+  talents: {
+    ranks: 3,
+    pointsPerTier: 3,
+    ultimatePoints: 15,
+    ultimateMastery: 5,
+    /** Jetons VIP pour redistribuer les points d'un Joueur. */
+    respecVip: 5,
+  },
 
   /** Recrutement : base × multiplicateur de Rareté × floorGrowth^(Étage le plus haut). */
   recruit: { base: 50, floorGrowth: 1.15 },
@@ -49,7 +66,7 @@ export const BALANCE = {
     /** Renouvellement immédiat : cette part du prix d'un Commun. */
     paidRefreshRatio: 0.5,
     rosterSize: 12,
-    /** Part du Cash dépensé en niveaux rendue quand on renvoie un Joueur. */
+    /** Part du prix d'embauche actuel rendue quand on renvoie un Joueur. */
     dismissRefund: 0.5,
     /** Écart maximal des stats de départ (0,15 = ±15 %). */
     qualitySpread: 0.15,

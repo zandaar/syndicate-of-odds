@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTeamProfile, getPlayerStats, levelUpCost, recruitCost } from './economy';
+import { buildTeamProfile, getPlayerStats, recruitCost } from './economy';
 import { makePlayer } from './testing';
 
 const NO_BONUS = { cashMult: 1 };
@@ -88,14 +88,6 @@ describe("buildTeamProfile — ce que vaut une Équipe à la Table", () => {
 });
 
 describe('coûts', () => {
-  it('passer du niveau 1 au niveau 2 coûte 1 500 $ pour un Commun', () => {
-    expect(levelUpCost(makePlayer('gambler')).toNumber()).toBe(1500);
-  });
-
-  it('les niveaux coûtent 20 % de plus à chaque fois, et 50 % plus cher pour un Rare', () => {
-    expect(levelUpCost(makePlayer('gambler', { rarity: 'rare', level: 5 })).toNumber()).toBeCloseTo(4665.6, 6);
-  });
-
   it("le prix d'embauche dépend de la Rareté et de l'Étage le plus haut atteint", () => {
     expect(recruitCost('common', 0).toNumber()).toBe(50);
     expect(recruitCost('epic', 10).toNumber()).toBeCloseTo(3034.168302, 3);

@@ -42,17 +42,20 @@ describe('actions du joueur', () => {
     expect(broke.state.roster).toHaveLength(1);
   });
 
-  it('« Max » achète autant de niveaux que le Cash le permet', () => {
-    const state = { ...game(), cash: D(5300) };
-    const result = applyAction(state, { type: 'levelUp', playerId: 'sam', count: 'max' }, NOW);
-    expect(result.state.roster[0]?.level).toBe(3);
-    expect(result.state.cash.toNumber()).toBe(2000);
+  it('apprendre un Talent dépense un point gagné en montant de niveau', () => {
+    const state = game(makePlayer('gambler', { id: 'sam', level: 2 }));
+    const result = applyAction(state, { type: 'learnTalent', playerId: 'sam', talentId: 'gambler.pyromane.meche-courte' }, NOW);
+    expect(result.error).toBeNull();
+    expect(result.state.roster[0]?.talents).toEqual({ 'gambler.pyromane.meche-courte': 1 });
+    expect(applyAction(result.state, { type: 'learnTalent', playerId: 'sam', talentId: 'gambler.pyromane.meche-courte' }, NOW).error).toBe('no-points');
   });
 
-  it('« +10 » est refusé s’il manque du Cash pour les 10 niveaux', () => {
-    const result = applyAction({ ...game(), cash: D(5300) }, { type: 'levelUp', playerId: 'sam', count: 10 }, NOW);
-    expect(result.error).toBe('not-enough-cash');
-    expect(result.state.roster[0]?.level).toBe(1);
+  it('redistribuer les Talents coûte 5 Jetons VIP et rend tous les points', () => {
+    const state = game(makePlayer('gambler', { id: 'sam', level: 4, talents: { 'gambler.pyromane.meche-courte': 3 } }));
+    expect(applyAction(state, { type: 'resetTalents', playerId: 'sam' }, NOW).error).toBe('not-enough-vip');
+    const result = applyAction({ ...state, vip: 7 }, { type: 'resetTalents', playerId: 'sam' }, NOW).state;
+    expect(result.vip).toBe(2);
+    expect(result.roster[0]?.talents).toEqual({});
   });
 
   it("l'Équipe 2 est verrouillée avant l'Étage 10", () => {
@@ -85,12 +88,12 @@ describe('actions du joueur', () => {
     expect(result.teams[0].run.phase.kind === 'table' && result.teams[0].run.phase.table.cover.toNumber()).toBe(210);
   });
 
-  it('renvoyer un Joueur le retire de son Équipe et rend une partie du Cash', () => {
+  it("renvoyer un Joueur le retire de son Équipe et rend la moitié de son prix d'embauche", () => {
     const state = withRoster(game(), [makePlayer('bluffer', { id: 'jess', level: 3 })]);
     const assigned = applyAction(state, { type: 'assign', playerId: 'jess', team: 0 }, NOW).state;
     const result = applyAction(assigned, { type: 'dismiss', playerId: 'jess' }, NOW).state;
     expect(result.teams[0].memberIds).toEqual(['sam']);
-    expect(result.cash.toNumber()).toBe(1650);
+    expect(result.cash.toNumber()).toBe(25);
   });
 
   it('on ne peut pas renvoyer son dernier Joueur', () => {
@@ -105,6 +108,17 @@ describe('avancement du temps', () => {
     expect(result.state.cash.toNumber()).toBe(78);
     expect(result.state.highestCleared).toBe(1);
     expect(result.state.teams[0].run.floor).toBe(2);
+  });
+
+  it("la Réputation gagnée à la Table est partagée entre les membres de l'Équipe ; le banc ne gagne rien", () => {
+    let state = withRoster(game(), [makePlayer('bluffer', { id: 'jess' }), makePlayer('mastermind', { id: 'banc' })]);
+    state = applyAction(state, { type: 'assign', playerId: 'jess', team: 0 }, NOW).state;
+    const after = advanceGame(state, 500, NOW, noJackpot).state;
+    const rep = (id: string) => after.roster.find((p) => p.id === id)!.reputation.toNumber();
+    // Rafle du tick : Sam 14 + Jess 7 = 21, soit 10,5 chacun.
+    expect(rep('sam')).toBeCloseTo(10.5, 6);
+    expect(rep('jess')).toBeCloseTo(10.5, 6);
+    expect(rep('banc')).toBe(0);
   });
 
   it('le temps qui ne fait pas un tick entier est gardé pour la suite', () => {
