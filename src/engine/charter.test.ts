@@ -1,7 +1,10 @@
 // Vérifie que les dictionnaires respectent docs/charte-des-noms.md.
 // Si ce test échoue après l'ajout d'un mot, le message indique le mot fautif.
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { CLASSES } from '../data/classes';
 import { ITEMS } from '../data/items';
+import { ERROR_TEXT, RARITY_LABEL } from '../ui/labels';
 import { COLORS, EMBLEMS, PLACES, CASINO_TIERS } from '../data/names/casinos';
 import { LEGENDARIES } from '../data/names/legendaries';
 import { EVENTS, NICKNAMES, WINKS, type Gendered } from '../data/names/nicknames';
@@ -60,6 +63,30 @@ describe('charte des noms — les dictionnaires', () => {
     }
     for (const legendary of LEGENDARIES) {
       expect(TRAITS_BY_ID.get(legendary.uniqueTraitId)?.legendaryOnly, legendary.uniqueTraitId).toBe(true);
+    }
+  });
+});
+
+describe('charte des noms — vocabulaire de jeu interdit', () => {
+  // « vie » seul reste permis (« Neuf vies », « la belle vie ») : seuls « points de vie » et « PV » sont interdits.
+  const BANNED = /(^|[^\p{L}])(xp|exp[ée]riences?|d[ée]g[âa]ts?|dommages?|drain|dps|pv|points? de vie|tank|buff|crit|loot|skills?|mana|qu[êe]tes?)(?=$|[^\p{L}])/iu;
+
+  it('aucun texte des données ne contient un mot de jeu de rôle', () => {
+    const texts: string[] = [
+      ...Object.values(CLASSES).flatMap((c) => [c.name, c.nameF, c.strength, c.weakness, c.passive]),
+      ...TRAITS.flatMap((t) => [t.name, t.description]),
+      ...ITEMS.flatMap((i) => [i.name, i.description]),
+      ...Object.values(ERROR_TEXT),
+      ...Object.values(RARITY_LABEL),
+    ];
+    for (const text of texts) expect(BANNED.test(text), text).toBe(false);
+  });
+
+  it("aucun texte de l'interface ne contient un mot de jeu de rôle", () => {
+    const files = ['src/App.tsx', ...readdirSync('src/components').map((f) => `src/components/${f}`)];
+    for (const file of files) {
+      const lines = readFileSync(file, 'utf8').split('\n');
+      for (const line of lines) expect(BANNED.test(line), `${file} : ${line.trim()}`).toBe(false);
     }
   });
 });

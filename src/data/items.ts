@@ -32,7 +32,7 @@ export const ITEMS: ItemDef[] = [
     price: 3,
     stats: { flair: 6, luck: 4 },
     effects: [{ kind: 'drain', on: 'normal', value: 0.1 }],
-    description: '+10 % de drain sur les Étages normaux.',
+    description: '+10 % de Rafle sur les Étages normaux.',
   },
   {
     id: 'lunettes-fumees',
@@ -41,7 +41,7 @@ export const ITEMS: ItemDef[] = [
     price: 3,
     stats: { composure: 40, stealth: 8 },
     effects: [{ kind: 'earlyShield', ticks: 10, value: 0.15 }],
-    description: '−15 % de dégâts subis pendant les 5 premières secondes.',
+    description: '−15 % de Soupçons pendant les 5 premières secondes.',
   },
   {
     id: 'trefle',
@@ -122,7 +122,7 @@ export const ITEMS: ItemDef[] = [
     price: 55,
     stats: { flair: 140, luck: 12 },
     effects: [{ kind: 'drain', on: 'boss', value: 0.3 }],
-    description: '+30 % de drain contre les Boss.',
+    description: '+30 % de Rafle contre les Boss.',
   },
   {
     id: 'bague-syndicat',
@@ -178,7 +178,7 @@ export const ITEMS: ItemDef[] = [
     classId: 'counter',
     stats: { flair: 25 },
     effects: [{ kind: 'ramp', perTick: 0.01, cap: 0.5 }],
-    description: 'Compteur uniquement : +1 % de drain par tick en plus (jusqu’à +50 %).',
+    description: 'Compteur uniquement : +1 % de Rafle par tick en plus (jusqu’à +50 %).',
   },
   {
     id: 'gants-soie',

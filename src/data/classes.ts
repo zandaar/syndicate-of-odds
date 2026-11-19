@@ -60,7 +60,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     nameF: 'Compteuse de cartes',
     strength: 'Monte en puissance pendant une Table, idéal contre les Boss.',
     weakness: 'Démarre lentement et ne fait jamais de Jackpot.',
-    passive: '+3 % de drain par tick passé sur la même Table (jusqu’à +150 %).',
+    passive: '+3 % de Rafle par tick passé sur la même Table (jusqu’à +150 %).',
     baseStats: { flair: 12, luck: 0, composure: 80, stealth: 10 },
     modifiers: [{ kind: 'noJackpot' }, { kind: 'ramp', perTick: 0.03, cap: 1.5 }],
   },
@@ -82,7 +82,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     name: 'Saboteur',
     nameF: 'Saboteuse',
     strength: 'Fait baisser la Pression, surtout celle des Boss.',
-    weakness: 'Drain faible, inutile quand la Pression est basse.',
+    weakness: 'Rafle faible, inutile quand la Pression est basse.',
     passive: '−15 % de Pression et −30 % du supplément des Boss.',
     baseStats: { flair: 8, luck: 6, composure: 100, stealth: 15 },
     modifiers: [

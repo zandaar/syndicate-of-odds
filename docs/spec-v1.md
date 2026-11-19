@@ -1,6 +1,6 @@
 # Spécification V1 — Syndicate of Odds
 
-Ce document résume les décisions prises le 19/11/2026 à partir du document de conception Gemini
+Ce document résume les décisions prises le 19/11/2026 (progression par Réputation et Talents décidée ensuite) à partir du document de conception Gemini
 (`Syndicate of Odds - Game Design Document & Specs Techniques.pdf`).
 **Quand les deux se contredisent, c'est ce document qui fait foi.** Le vocabulaire suit [GLOSSARY.md](../GLOSSARY.md),
 les noms suivent [la charte des noms](charte-des-noms.md).
@@ -25,11 +25,17 @@ les noms suivent [la charte des noms](charte-des-noms.md).
 | Joueurs | 6 personnages nommés, 3 rôles | Joueurs générés : 6 Classes, stats ±15 % (Qualité), Traits, 4 Raretés, noms générés. |
 | Recrutement | achat direct | Bureau de recrutement : 3 Candidats, renouvelés toutes les 20 min (ou contre du Cash) ; roster de 12 places extensible en Jetons VIP ; renvoi = 50 % du Cash des niveaux rendu. |
 | Départ | Sam offert | Un Flambeur Commun offert. |
+| Niveaux | payés en Cash | **Gagnés avec la Réputation** : à la Table, chaque Équipe gagne autant de Réputation que de Cash raflé, partagée entre ses membres, plus un bonus à chaque Étage validé ; le hors-ligne donne aussi de la Réputation. Les Joueurs sur le banc ne gagnent rien, sauf grâce à la Salle d'entraînement. Chaque niveau : stats +8 % et 1 point de Talent. |
+| Talents | arbre « Final » | **Arbre de Talents personnel**, propre à la Classe : 3 branches de 5 Talents, un Talent ultime par branche et un Talent sans limite (+1 % par point) au bout. Redistribution contre des Jetons VIP. |
+| Maîtrise de Classe | — | Toute la Réputation gagnée par les Joueurs d'une Classe fait monter sa Maîtrise : petits bonus permanents pour la Classe, et déblocage des Talents ultimes. **Elle survit au renvoi et au Blanchiment.** |
+| Bâtiments du QG | Final | Dès la V1, améliorables sans fin avec du Cash : Salle d'entraînement (Réputation du banc), Planque (plafond hors-ligne), Agence (Candidats, Raretés), Coffre-fort (prime de fin d'Étage). |
+| Cash | recrutement et niveaux | **Recruter, acheter et améliorer les Gadgets, construire les Bâtiments.** |
+| Jetons VIP | Gadgets | Redistribuer les Talents, agrandir le roster, renouveler les Candidats, plus tard des Gadgets rares. |
 | Équipes | 1 + 1 débloquée | Inchangé : 2 Équipes en V1 ; Cash et Jetons VIP communs ; un Joueur dans une seule Équipe. |
 | Objectifs | menu « Contrats/Objectifs » | Succès par paliers sans fin ; Jetons VIP + petit bonus permanent. |
 | Hors-ligne | gains moyens | Gains de l'Étage actuel, sans monter d'Étage ; plafond 12 h. |
-| Prestige | V2 | **Blanchiment en V1**, débloqué à l'Étage 50 : tout repart de zéro sauf l'Influence, le Réseau et les Succès. |
-| Gadgets | 12 fixes | 18 fixes : les 12 du document + 1 Gadget de Classe par Classe ; prix réglés pour être rachetables à chaque tour. |
+| Prestige | V2 | **Blanchiment en V1**, débloqué à l'Étage 50 : tout repart de zéro sauf l'Influence, le Réseau, les Succès et la Maîtrise de Classe. |
+| Gadgets | 12 fixes, en Jetons VIP | 18 fixes (les 12 du document + 1 Gadget de Classe par Classe), **achetés en Cash et améliorables rang par rang**, avec un coût qui grandit sans fin. |
 | Interface | 3 colonnes | 3 colonnes sur PC, 3 onglets sur mobile (QG / Casinos / Équipe). Textes en français, code en anglais. |
 | Hébergement | dépôt public | Dépôt public `syndicate-of-odds`. |
 
@@ -40,9 +46,9 @@ les noms suivent [la charte des noms](charte-des-noms.md).
 | Flambeur | Gros gains | Jackpots fréquents et énormes | Fragile, irrégulier | Jackpots +25 % |
 | Bluffeur | Encaisse | Énorme Sang-froid, haute Discrétion | Rapporte très peu | +20 % d'efficacité de Discrétion pour l'Équipe |
 | Cerveau | Renforce les autres | Booste les coéquipiers | Presque inutile seul | Coéquipiers +10 % Flair, +5 % Chance |
-| Compteur de cartes | Gains réguliers | Monte en puissance, idéal contre les Boss | Démarre lentement, jamais de Jackpot | +3 % de drain par tick sur la même Table (max +150 %) |
+| Compteur de cartes | Gains réguliers | Monte en puissance, idéal contre les Boss | Démarre lentement, jamais de Jackpot | +3 % de Rafle par tick sur la même Table (max +150 %) |
 | Pickpocket | Économie | Beaucoup de Cash hors combat | Faible à la Table | +30 % de prime de fin d'Étage et de gains hors-ligne |
-| Saboteur | Neutralise la sécurité | Baisse la Pression, surtout des Boss | Drain faible, inutile si la Pression est basse | −15 % de Pression, −30 % du bonus de difficulté des Boss |
+| Saboteur | Neutralise la sécurité | Baisse la Pression, surtout des Boss | Rafle faible, inutile si la Pression est basse | −15 % de Pression, −30 % du bonus de difficulté des Boss |
 
 ## Rareté
 

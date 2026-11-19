@@ -29,8 +29,20 @@ _Avoid_ : PV ennemi, banque, coffre
 La réserve de Sang-froid commune d'une Équipe pendant une Table ; quand elle tombe à zéro, l'Équipe est grillée et se replie.
 _Avoid_ : PV, vie
 
+**Rafle** :
+L'argent qu'un Joueur prend dans la Caisse à chaque tick ; elle devient du Cash.
+_Avoid_ : drain, dégâts, DPS
+
+**Pression** :
+La force de la sécurité d'un Étage (croupiers, caméras, vigiles) à chaque tick.
+_Avoid_ : attaque, puissance ennemie
+
+**Soupçons** :
+Ce que la Pression retire vraiment de la Couverture, une fois la Discrétion de l'Équipe appliquée.
+_Avoid_ : dégâts, dommages
+
 **Jackpot** :
-Un drain critique déclenché par la Chance d'un Joueur.
+Une Rafle multipliée, déclenchée par la Chance d'un Joueur.
 _Avoid_ : crit, coup critique
 
 ## Syndicat
@@ -63,8 +75,28 @@ Un Joueur proposé au Bureau de recrutement, pas encore embauché.
 _Avoid_ : recrue
 
 **Gadget** :
-Un objet acheté en Jetons VIP et porté par un Joueur dans l'un de ses deux emplacements (Accessoire ou Gadget).
+Un objet acheté et amélioré par rangs avec du Cash, porté par un Joueur dans l'un de ses deux emplacements (Accessoire ou Gadget).
 _Avoid_ : item, équipement, objet
+
+**Réputation** :
+Ce qu'un Joueur gagne à la Table (autant que le Cash raflé, partagé dans l'Équipe) ; elle fait monter son niveau.
+_Avoid_ : XP, expérience, bouteille
+
+**Talent** :
+Un bonus choisi par le joueur dans l'Arbre de Talents d'un Joueur, en dépensant les points gagnés à chaque niveau.
+_Avoid_ : compétence, perk, skill
+
+**Arbre de Talents** :
+L'ensemble des Talents propres à une Classe, en trois branches, que chaque Joueur remplit à sa façon.
+_Avoid_ : arbre de compétences, spécialisation
+
+**Maîtrise de Classe** :
+Le niveau durable d'une Classe, nourri par la Réputation de tous ses Joueurs ; elle survit au renvoi et au Blanchiment.
+_Avoid_ : niveau de Classe, réputation
+
+**Bâtiment** :
+Une installation du QG (Salle d'entraînement, Planque, Agence, Coffre-fort) améliorée avec du Cash.
+_Avoid_ : amélioration, upgrade
 
 **Équipe** :
 Un groupe de 1 à 3 Joueurs affecté à une ligne de jeu ; un Joueur n'appartient qu'à une Équipe à la fois.
@@ -77,11 +109,11 @@ _Avoid_ : objectif, achievement, quête (et « contrat », réservé aux futurs 
 ## Monnaies
 
 **Cash** :
-La monnaie commune du Syndicat, servant à recruter et monter de niveau les Joueurs.
+La monnaie commune du Syndicat, servant à recruter, acheter et améliorer les Gadgets, et construire les Bâtiments.
 _Avoid_ : argent, dollars, or
 
 **Jetons VIP** :
-La monnaie rare du Syndicat, gagnée sur les Boss et les Succès, servant à acheter des Gadgets.
+La monnaie rare du Syndicat, gagnée sur les Boss et les Succès, servant à redistribuer les Talents, agrandir le roster et renouveler les Candidats.
 _Avoid_ : gemmes, tokens
 
 ## Univers
@@ -96,7 +128,7 @@ _Avoid_ : easter egg, référence
 ## Prestige
 
 **Blanchiment** :
-Une remise à zéro totale et volontaire de la partie (Joueurs, Gadgets, monnaies, Étages) contre de l'Influence ; seuls l'Influence, le Réseau et les Succès survivent.
+Une remise à zéro totale et volontaire de la partie (Joueurs, Gadgets, monnaies, Étages) contre de l'Influence ; seuls l'Influence, le Réseau, les Succès et la Maîtrise de Classe survivent.
 _Avoid_ : prestige, reset, changer de ville
 
 **Influence** :

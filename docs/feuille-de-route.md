@@ -16,9 +16,10 @@ Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
 | 2. Moteur + simulateur d'équilibrage (41 tests) | ✅ Fait |
 | 3. Noms générés + Traits + Bureau de recrutement (73 tests au total) | ✅ Fait |
 | 4. Interface jouable (QG, Casinos, Équipe) — 94 tests | ✅ Fait, jouable en local (`npm run dev`) |
-| 5. Sauvegarde locale, hors-ligne au retour, export/import | ⏭️ **Prochaine étape** |
-| 6. Succès, Boutique VIP, Blanchiment et Réseau | À faire |
-| 7. Pixel art des Tables et finitions | À faire |
+| 5. **Refonte de la progression** : Réputation, Talents, Maîtrise de Classe, Gadgets en Cash, Bâtiments, nouveau simulateur | ⏭️ **Prochaine étape** (arbres de Talents en cours de conception) |
+| 6. Sauvegarde locale, hors-ligne au retour, export/import | À faire |
+| 7. Succès, Blanchiment et Réseau | À faire |
+| 8. Pixel art des Tables et finitions | À faire |
 | Phase 2 : Firebase (comptes + sauvegarde cloud) | Plus tard |
 
 ## Ce qui existe dans le code
@@ -45,7 +46,19 @@ Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
 - `.claude/launch.json` : lance le jeu dans le navigateur intégré (`jeu`, port 5173).
 - Pas encore de sauvegarde : rafraîchir la page recommence la partie.
 
-## Prochaine étape en détail (étape 5 : sauvegarde)
+## Prochaine étape en détail (étape 5 : refonte de la progression)
+
+Décidée le 19/11/2026 (voir [spec-v1.md](spec-v1.md) et [ADR 0003](adr/0003-niveaux-par-reputation-cash-pour-gadgets-et-batiments.md)).
+
+1. Concevoir avec le créateur le contenu des 6 Arbres de Talents (en cours).
+2. Réputation : gagnée à la Table (= Cash raflé, partagée dans l'Équipe), bonus par Étage validé, Réputation hors-ligne ; courbe de Réputation par niveau dans `balance.ts`.
+3. Talents : données dans `src/data/talents.ts`, effets via les `Modifier` existants (+ nouveaux effets pour les Talents ultimes), dépense et redistribution (Jetons VIP).
+4. Maîtrise de Classe : Réputation cumulée par Classe, bonus permanents, déblocage des Talents ultimes.
+5. Gadgets achetés et améliorés en Cash (rangs à coût croissant) ; Boutique dans le QG.
+6. Bâtiments du QG : Salle d'entraînement, Planque, Agence, Coffre-fort.
+7. Retirer l'achat de niveaux en Cash (interface et moteur) ; réécrire le simulateur et revérifier le rythme (Étage 50 en 1 à 2 jours).
+
+## Ensuite (étape 6 : sauvegarde)
 
 1. `src/storage/SaveProvider.ts` (interface `load`, `save`, `exportData`, `importData`) et `LocalProvider.ts` (localStorage).
 2. Format de sauvegarde : `saveVersion: 1`, `lastSavedAt`, grands nombres en texte ; `migrations.ts` prêt pour les versions suivantes ; champ `prestigeLevel` prévu.
@@ -59,4 +72,4 @@ Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
 - Formule exacte de l'Influence au Blanchiment et prix des niveaux du Réseau.
 - Liste précise des Succès et de leurs bonus.
 - Le simulateur n'achète pas de Gadgets : à ajouter quand la Boutique existera, puis revérifier le rythme.
-- Le premier niveau coûte 1 500 $ (pour que l'Étage 50 arrive en 1 jour) : à rejuger une fois le jeu jouable.
+- Courbe de Réputation et prix des Gadgets et Bâtiments : à régler avec le nouveau simulateur (étape 5).

@@ -21,6 +21,20 @@ La ville est cosmopolite : on y croise des familles françaises, italiennes, cor
 6. **Accords** : chaque mot qui s'accorde existe au masculin et au féminin ; chaque nom commun connaît son genre (pour « Le / La / L' » et « du / de la / de l' »).
 7. **Cohérence d'origine** : le prénom et le nom de famille d'un même personnage ont la même origine.
 
+### Vocabulaire de jeu interdit
+
+Aucun texte affiché ne doit sonner « jeu de rôle ». Mots interdits et leurs remplaçants :
+
+| Interdit | À la place |
+|---|---|
+| XP, expérience | Réputation |
+| dégâts, dommages | Soupçons |
+| drain, DPS | Rafle |
+| PV, points de vie | Couverture, Sang-froid (le mot « vie » seul reste permis : « Neuf vies ») |
+| tank, buff, crit, loot, skill, mana, quête | Bluffeur, bonus, Jackpot, gains, Talent, (rien), Succès |
+
+Le test `src/engine/charter.test.ts` vérifie tous les textes des données et de l'interface. Dans le code, les noms techniques en anglais (`drain`, `damage`, `xp`) restent permis : ils ne s'affichent jamais.
+
 ## 3. Les Clins d'œil (exceptions volontaires)
 
 Un **Clin d'œil** est un nom qui sort exprès de l'univers : jeu de mots sur une chose réelle, anachronisme, référence à la pop culture ou à la politique.

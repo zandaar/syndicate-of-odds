@@ -32,7 +32,7 @@ export const BALANCE = {
   /** Prime de fin d'Étage, en part de la Caisse (0,3 = 30 %). */
   floorBonusRatio: 0.3,
 
-  /** Jackpot : drain ×baseMult ; chance de Jackpot plafonnée. */
+  /** Jackpot : Rafle ×baseMult ; chance de Jackpot plafonnée. */
   jackpot: { baseMult: 2, maxChance: 0.75 },
 
   /** Niveaux : stats ×statGrowth par niveau ; coût = costBase × costGrowth^(niveau − 1). */
