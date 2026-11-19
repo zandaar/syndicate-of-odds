@@ -9,6 +9,7 @@ import { formatNumber } from './engine/format';
 import { advanceGame, applyAction, newGame, type GameAction, type GameEvent, type GameState, type OfflineResult } from './engine/game';
 import { LOAD_ERROR_TEXT, OfflineWindow, SaveWindow } from './components/SaveWindows';
 import type { AchievementUnlock } from './engine/achievements';
+import { FirstSteps } from './components/FirstSteps';
 import { browserStore, LocalProvider, readSaveNow } from './storage/LocalProvider';
 import { serializeGame } from './storage/saveFormat';
 import { importSave, loadGame, MIN_OFFLINE_SECONDS } from './storage/saves';
@@ -182,6 +183,8 @@ export default function App() {
           {message}
         </div>
       )}
+
+      <FirstSteps />
 
       {notice && (
         <div className="fixed left-1/2 top-14 z-40 -translate-x-1/2 rounded border border-gold bg-smoke px-4 py-2 text-sm text-gold shadow-lg">

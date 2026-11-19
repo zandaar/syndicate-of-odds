@@ -1,93 +1,60 @@
 # Feuille de route — Syndicate of Odds
 
-Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
+Dernière mise à jour : 19/11/2026, fin de l'étape 8. **La V1 est complète et jouable en local.**
 
-> **Projet clos pour l'instant** : dépôt GitHub passé en **privé**, site GitHub Pages **désactivé**, déploiement automatique **désactivé**.
-> Vérifié avant fermeture : aucune information personnelle dans les fichiers ni dans l'historique (commits signés avec l'adresse noreply GitHub, PDF Gemini jamais publié).
-> La procédure de réouverture est dans [CLAUDE.md](../CLAUDE.md).
+> **Le dépôt GitHub est toujours privé et le site désactivé** (fermé à la demande du créateur).
+> Rouvrir le site public est la prochaine décision : **ne rien publier sans son accord explicite** (procédure dans [CLAUDE.md](../CLAUDE.md)).
 
 ## Où on en est
 
 | Étape | État |
 |---|---|
-| 0. Outils (Git, GitHub CLI, Node 26) | ✅ Fait |
-| Conception : 29 décisions prises en séance de questions | ✅ Fait, voir [spec-v1.md](spec-v1.md) |
-| 1. Projet, dépôt public, mise en ligne automatique | ✅ Fait, puis fermé : dépôt privé, site désactivé |
-| 2. Moteur + simulateur d'équilibrage (41 tests) | ✅ Fait |
-| 3. Noms générés + Traits + Bureau de recrutement (73 tests au total) | ✅ Fait |
-| 4. Interface jouable (QG, Casinos, Équipe) — 94 tests | ✅ Fait, jouable en local (`npm run dev`) |
-| 5. **Refonte de la progression** : Réputation, Talents, Maîtrise de Classe, Gadgets en Cash, Bâtiments, nouveau simulateur | ✅ Fait (140 tests) : Réputation, 126 Talents, Maîtrise, Gadgets en Cash, Bâtiments, simulateur qui joue via les vraies actions, rythme réglé |
-| 6. Sauvegarde locale, hors-ligne au retour, export/import | ✅ Fait (149 tests) |
-| 7. Succès, Blanchiment et Réseau | ✅ Fait (162 tests) |
-| 8. Pixel art des Tables et finitions | ⏭️ **Prochaine étape** |
+| 0. Outils (Git, GitHub CLI, Node 26) | ✅ |
+| Conception : décisions Q1 à Q30, voir [spec-v1.md](spec-v1.md) | ✅ |
+| 1. Projet, dépôt, déploiement automatique | ✅ puis fermé (dépôt privé, Pages et workflow désactivés) |
+| 2. Moteur + simulateur d'équilibrage | ✅ |
+| 3. Noms générés, Traits, Bureau de recrutement | ✅ |
+| 4. Interface jouable (3 colonnes PC, 3 onglets mobile) | ✅ |
+| 5. Réputation, 126 Talents, Maîtrise de Classe, Gadgets en Cash, Bâtiments, rythme | ✅ |
+| 6. Sauvegarde locale, absence, export/import | ✅ |
+| 7. Blanchiment, Réseau, Succès (sauvegarde v2) | ✅ |
+| 8. Pixel art des Tables, icône, bulles d'aide, vérification mobile | ✅ (169 tests) |
+| ⏭️ **Rouvrir le site public** (Q30) | À confirmer par le créateur |
 | Phase 2 : Firebase (comptes + sauvegarde cloud) | Plus tard |
 
-## Ce qui existe dans le code
+## Carte du code
 
-- `src/data/balance.ts` : toutes les constantes d'équilibrage (réglées avec le simulateur).
-- `src/data/classes.ts` : les 6 Classes et leurs passifs.
-- `src/data/items.ts` : les 18 Gadgets (12 du document + 6 Gadgets de Classe).
-- `src/data/traits.ts` : 30 Traits ordinaires + 12 Traits uniques de Légendaires.
-- `src/data/names/` : dictionnaires (prénoms et noms par origine, surnoms par Classe, Clins d'œil, événements datés, 12 Légendaires dont Marco « La Moula » Moula, vocabulaire des Casinos et Titres des Boss).
-- `src/engine/` : moteur pur, sans React :
-  - `floors.ts` — `getFloor(n)` : Caisse, Pression, Boss, Jetons VIP d'un Étage ;
-  - `economy.ts` — `getPlayerStats`, `buildTeamProfile`, `levelUpCost`, `recruitCost` ;
-  - `combat.ts` — `startTeamRun`, `tickTeam` (mode aléatoire ou « expected ») ;
-  - `offline.ts` — `computeOfflineGains` ;
-  - `simulator.ts` — `simulatePlaythrough` (test de rythme : Étage 50 en 20 à 48 h) ;
-  - `names.ts` — `getCasino(n)`, `getBoss(étage)`, `generateIdentity` ;
-  - `recruitment.ts` — `generateCandidate`, Bureau (`openOffice`, `refreshIfDue`, `paidRefresh`, `hireCandidate`, `dismissPlayer`) ;
-  - `charter.test.ts` — vérifie les dictionnaires contre la charte ;
-  - `format.ts` — `formatNumber` (K, M, B, T, aa… ou notation scientifique) ;
-  - `game.ts` — `GameState`, `newGame`, `applyAction` (embauche, niveaux +1/+10/Max, affectation, options, renvoi), `advanceGame` (ticks, au plus 1 h rattrapée).
-- `src/App.tsx` : boucle de jeu (100 ms) et mise en page : 3 colonnes sur PC, 3 onglets sur mobile.
-- `src/components/` : `TopBar`, `HQPanel` (Bureau de recrutement ; Boutique et Succès en attente), `CasinoLane` (jauges, Boss, Auto, repli, gains flottants), `RosterSidebar` (liste + fiche du Joueur).
-- `src/ui/labels.ts` : textes affichés (Raretés, Classes au féminin, messages d'erreur).
-- `.claude/launch.json` : lance le jeu dans le navigateur intégré (`jeu`, port 5173).
-- Pas encore de sauvegarde : rafraîchir la page recommence la partie.
+- `src/data/` — données commentées en français :
+  `balance.ts` (toutes les constantes), `classes.ts` (6 Classes), `talents.ts` (6 arbres × 3 branches × 7 Talents),
+  `items.ts` (18 Gadgets), `traits.ts` (30 + 12 uniques), `buildings.ts` (4 Bâtiments), `network.ts` (5 bonus de Réseau),
+  `achievements.ts` (7 familles de Succès), `names/` (dictionnaires de noms, Casinos, Boss, Légendaires, événements).
+- `src/engine/` — moteur pur (sans React) :
+  `floors.ts` (`getFloor`), `economy.ts` (stats, profil d'Équipe, Réputation, Maîtrise, prix des Gadgets),
+  `combat.ts` (`tickTeam`, modes aléatoire / « expected »), `talents.ts`, `buildings.ts`, `network.ts`, `achievements.ts`,
+  `names.ts`, `recruitment.ts`, `offline.ts`, `format.ts`, `simulator.ts` (joue de vraies parties, `runs` pour plusieurs Blanchiments),
+  **`game.ts`** (`GameState`, `newGame`, `applyAction`, `advanceGame`, `applyOffline`, `bonusesOf`, `distributeReputation`).
+- `src/storage/` — `saveFormat.ts` (JSON, grands nombres `{"$d": …}`, Base64, **`CURRENT_SAVE_VERSION = 2`**), `migrations.ts` (0 → 1 → 2),
+  `SaveProvider.ts` (interface), `LocalProvider.ts` (localStorage), `saves.ts` (`loadGame`, `importSave`, `exportCode`).
+- `src/render/` — `sprites.ts` (palette + sprites en caractères), `scene.ts` (`composeScene`, fonction pure testée), `draw.ts` (dessin canvas 160 × 64).
+- `src/components/` — `TopBar`, `HQPanel` (Bureau + `QGPanels` : Bâtiments, Boutique, Maîtrise + `PrestigePanels` : Blanchiment, Réseau, Succès),
+  `CasinoLane` (+ `TableCanvas`), `RosterSidebar` (+ `TalentTree`, équipement), `SaveWindows`, `FirstSteps`, `common`.
+- `src/App.tsx` — boucle de jeu (100 ms), sauvegarde auto (10 s + fermeture), chargement avec gains d'absence, notifications.
+- Tests : `src/**/*.test.ts` (169). Le simulateur vérifie le rythme ; `charter.test.ts` vérifie noms et vocabulaire.
 
-## Prochaine étape en détail (étape 5 : refonte de la progression)
+## Rythme mesuré (simulateur, 4 sessions de 30 min par jour)
 
-Décidée le 19/11/2026 (voir [spec-v1.md](spec-v1.md) et [ADR 0003](adr/0003-niveaux-par-reputation-cash-pour-gadgets-et-batiments.md)).
+1re partie : Étage 20 en 27 min, 30 en 4 h, 50 en 24 h, 60 en 48 h. Après Blanchiment à l'Étage 50 : 2e partie Étage 50 en 8 h, 3e en 16 h.
 
-1. ✅ Contenu des 6 Arbres de Talents (`src/data/talents.ts`, 126 Talents).
-2. ✅ Réputation : gagnée à la Table (= Cash raflé, partagée dans l'Équipe), bonus par Étage validé, Réputation hors-ligne (`gainReputation`, `reputationToNext`).
-3. ✅ Talents : effets dans `economy.ts` et `combat.ts` (18 Talents ultimes testés), dépense et redistribution (`src/engine/talents.ts`, 5 Jetons VIP), arbre dans la fiche Joueur (`TalentTree.tsx`). Le renvoi rend désormais 50 % du prix d'embauche.
-4. ✅ Maîtrise de Classe (`GameState.mastery`, `masteryFromTotal`) : toute Réputation nourrit sa Classe, +2 % de stats par niveau, Talents ultimes au niveau 5, points de départ aux niveaux 10, 25 et 50 ; panneau dans le QG.
-5. ✅ Gadgets en Cash (`buyItem`, `upgradeItem`, `equip`, `unequip`) : un exemplaire chacun, rangs à +60 % de coût et +15 % de stats ; Boutique dans le QG, équipement dans la fiche Joueur.
-6. ✅ Bâtiments (`src/data/buildings.ts`, `src/engine/buildings.ts`) : Salle d'entraînement, Planque, Agence, Coffre-fort.
-7. ✅ 5C : le simulateur joue avec les vraies actions de `game.ts` (recrues, Gadgets, Bâtiments, Talents, `applyOffline`) ; option `shopping: false` pour mesurer l'effet des achats.
-   Constat : les achats et le retour d'absence accéléraient énormément le jeu (Étage 50 en 30 min). Réglages retenus : Étages +17 % de Caisse et +16 % de Pression par Étage, Gadgets plus chers (base 2 000 $, ×2,5 par rang, stats +25 % par rang au lieu de ×1,15), Bâtiments ×20 et ×2,5 par niveau, Réputation ×1,24 par niveau, Maîtrise ×1,5 par niveau.
-   Rythme mesuré : Étage 20 en 27 min, 30 en 4 h, 50 en 24 h, 60 en 48 h.
-5. Gadgets achetés et améliorés en Cash (rangs à coût croissant) ; Boutique dans le QG.
-6. Bâtiments du QG : Salle d'entraînement, Planque, Agence, Coffre-fort.
-7. Retirer l'achat de niveaux en Cash (interface et moteur) ; réécrire le simulateur et revérifier le rythme (Étage 50 en 1 à 2 jours).
+## Prochaines étapes possibles
 
-## Étape 7 : Succès, Blanchiment, Réseau (faite)
+1. **Rouvrir le site public** : seulement sur accord explicite du créateur (voir CLAUDE.md), puis vérifier la mise en ligne.
+2. **Phase 2 — Firebase** : `CloudProvider` qui respecte `SaveProvider` ; connexion e-mail ou Google ; document `users/{uid}` ;
+   écriture toutes les **60 s seulement si la partie a changé** + à la fermeture (la sauvegarde locale reste à 10 s) ;
+   règles Firestore `allow read, write: if request.auth != null && request.auth.uid == userId;` ; clés dans un fichier de config séparé.
+3. Contenu et finitions : plus de décors, sons, contrats à modificateurs, 3e Équipe, Gadgets aléatoires (vision finale du PDF).
 
-- Blanchiment (`launder`, dès l'Étage 50) : Influence = (Étage ÷ 10)² ; remet à zéro Joueurs, Cash, Jetons VIP, Gadgets, Bâtiments, Étages ; garde Influence, Réseau, Succès, Maîtrise, réglages et compteurs à vie (`GameState.lifetime`).
-- Réseau (`src/data/network.ts`, `src/engine/network.ts`) : Blanchisseurs, Mentors, Indics, Contacts (départ Étage 10/25/50), Nuits blanches.
-- Succès (`src/data/achievements.ts`, `src/engine/achievements.ts`) : 7 familles à paliers, Jetons VIP + 1 % de Cash par palier ; évalués après chaque action et chaque avancée du temps.
-- Sauvegarde en version 2 (migration 1 → 2 dans `migrations.ts`).
-- Simulateur à plusieurs parties (`runs`) : 1re partie Étage 50 en 24 h, 2e en 8 h, 3e en 16 h (le joueur simulé Blanchit dès l'Étage 50, donc peu d'Influence : Blanchir plus tard rapporterait plus).
+## Points ouverts
 
-## Étape 6 : sauvegarde (faite)
-
-- `src/storage/saveFormat.ts` (format JSON, grands nombres en texte `{"$d": …}`, Base64), `migrations.ts` (version 0 → 1, versions futures refusées), `SaveProvider.ts` + `LocalProvider.ts` (localStorage), `saves.ts` (`loadGame`, `importSave`, `exportCode`, gains d'absence).
-- Sauvegarde automatique toutes les 10 s et à la fermeture ; fenêtre « Sauvegarde » (copier le code, télécharger / importer `syndicate-save.json`, recommencer avec double confirmation) ; fenêtre « Pendant ton absence ».
-- **Pour Firebase (phase 2)** : garder 10 s en local, mais n'écrire dans Firestore que toutes les 60 s **et seulement si la partie a changé**, plus à la fermeture (offre gratuite Spark : quota d'écritures par jour partagé par tous les joueurs, à revérifier).
-
-## Ancien plan de l'étape 6 (pour mémoire)
-
-1. `src/storage/SaveProvider.ts` (interface `load`, `save`, `exportData`, `importData`) et `LocalProvider.ts` (localStorage).
-2. Format de sauvegarde : `saveVersion: 1`, `lastSavedAt`, grands nombres en texte ; `migrations.ts` prêt pour les versions suivantes ; champ `prestigeLevel` prévu.
-3. Sauvegarde automatique toutes les 10 s et à la fermeture de l'onglet.
-4. Au retour : gains hors-ligne (`computeOfflineGains`, plafond 12 h) et fenêtre « Pendant ton absence (2 h 15), tes Équipes ont raflé +38,4K $ ».
-5. Fenêtre Sauvegarde / Transfert : copier une chaîne Base64, télécharger / importer `syndicate-save.json`, recommencer la partie avec confirmation.
-6. Points de test à proposer au créateur (par exemple : aller-retour sauvegarde → chargement identique, sauvegarde abîmée refusée sans perdre la partie, migration d'une ancienne version, gains au retour).
-
-## Points ouverts à trancher plus tard
-
-- 3e partie du simulateur plus lente que la 2e : à surveiller (stratégie de Blanchiment du joueur simulé, prix du Réseau).
-- Le retour d'absence reste le gros moteur de progression (gros sauts à 4 h, 8 h…) : à surveiller quand on jouera vraiment ; une piste serait de réduire l'efficacité hors-ligne.
-- Courbe de Réputation et prix des Gadgets et Bâtiments : à régler avec le nouveau simulateur (étape 5).
+- Le retour d'absence est le gros moteur de progression (sauts à 4 h, 8 h…) : à juger en jouant ; piste : réduire l'efficacité hors-ligne.
+- La 3e partie du simulateur est plus lente que la 2e (il Blanchit dès l'Étage 50, donc peu d'Influence) : à surveiller.
+- Les sprites sont simples (8 × 10, dessinés en ×2) : à enrichir si le créateur le souhaite.

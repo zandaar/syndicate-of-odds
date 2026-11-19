@@ -15,7 +15,7 @@ Idle-RPG navigateur (React + Vite + TypeScript strict + Tailwind, `break_eternit
 - Débutant complet en code, parle français. Explique simplement, une étape à la fois, avec les commandes exactes à copier.
 - Préfère que Claude fasse les choses lui-même quand c'est possible.
 - Pour une décision de conception : questions numérotées avec une recommandation chacune (skill `grilling`), il répond « oui » ou corrige un numéro.
-- Il veut économiser les tokens : réponses concises.
+- Il veut économiser les tokens : réponses concises. **Réponds en français.**
 
 ## Règles de code
 
@@ -23,9 +23,12 @@ Idle-RPG navigateur (React + Vite + TypeScript strict + Tailwind, `break_eternit
 - Toute valeur d'argent ou de puissance en `Decimal` (ADR 0001). Casinos et Boss déduits du numéro d'Étage (ADR 0002).
 - Identifiants de code en anglais, textes affichés en français.
 - TDD (skill `tdd`) : convenir des points de test avec le créateur avant d'écrire les tests.
-- Chaque nouvelle donnée de sauvegarde : incrémenter `saveVersion` et ajouter une migration (quand `src/storage/` existera).
-- Ne jamais conclure une étape sans `npm test` et `npm run build` au vert.
-- Changement d'équilibrage : `src/data/balance.ts`, puis `npm test` (le simulateur vérifie le rythme).
+- Chaque nouvelle donnée de sauvegarde : incrémenter `CURRENT_SAVE_VERSION` (`src/storage/saveFormat.ts`, aujourd'hui 2) et ajouter une étape dans `src/storage/migrations.ts`, avec un test.
+- Toute la logique de jeu passe par `src/engine/game.ts` (`applyAction`, `advanceGame`) ; l'interface ne fait qu'afficher et envoyer des actions.
+- Ne jamais conclure une étape sans `npm test` et `npm run build` au vert, puis une vérification dans le navigateur intégré (configuration `jeu` de `.claude/launch.json`).
+- Changement d'équilibrage : `src/data/balance.ts` (et `buildings.ts`, `items.ts`), puis `npm test`. Pour régler, écrire un test temporaire `src/engine/zz-tuning.test.ts` qui fait varier les constantes et lance `simulatePlaythrough` (option `shopping`, `runs`), puis le supprimer.
+- Textes affichés : vocabulaire de l'univers uniquement (Réputation, Rafle, Soupçons… voir la charte) ; `charter.test.ts` bloque les mots de jeu de rôle.
+- Tests dans le navigateur : la sauvegarde automatique à la fermeture écrase toute modification manuelle de `localStorage` ; pour tester un état précis, importer un code via la fenêtre « Sauvegarde ». **Exporter d'abord la sauvegarde du créateur** avant de la modifier.
 
 ## Commandes
 
@@ -37,7 +40,7 @@ npm run build    # vérification des types + version en ligne
 
 ## Git et GitHub
 
-- ⚠️ **Projet clos pour l'instant (19/11/2026), à la demande du créateur** : le dépôt `zandaar/syndicate-of-odds` est **privé**, GitHub Pages est **désactivé** (le site renvoie 404) et le workflow de déploiement est **désactivé**. Ne rien republier sans son accord explicite.
+- ⚠️ **Dépôt privé, site fermé (depuis le 19/11/2026, à la demande du créateur)** : `zandaar/syndicate-of-odds` est **privé**, GitHub Pages est **désactivé** et le workflow de déploiement est **désactivé**. La V1 est finie ; le créateur doit dire explicitement « oui, rouvre le site » avant toute publication.
 - Pour rouvrir (seulement s'il le demande) : `gh repo edit zandaar/syndicate-of-odds --visibility public --accept-visibility-change-consequences`, puis `gh api -X POST repos/zandaar/syndicate-of-odds/pages -f build_type=workflow`, puis `gh workflow enable deploy.yml -R zandaar/syndicate-of-odds` et un push sur `main`. Sur un compte gratuit, GitHub Pages exige un dépôt public.
 - Branche `main`. Quand le workflow est actif, chaque push sur `main` teste, compile et publie (`.github/workflows/deploy.yml`).
 - L'e-mail de commit du dépôt est l'adresse noreply GitHub (déjà configurée dans `.git/config`) : ne jamais publier l'e-mail personnel.

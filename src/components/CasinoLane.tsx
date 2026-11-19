@@ -5,6 +5,8 @@ import { getFloor } from '../engine/floors';
 import { isTeamUnlocked, teamMembers, teamProfile, type GameAction, type GameState, type TeamIndex } from '../engine/game';
 import { getBoss, getCasino } from '../engine/names';
 import { className } from '../ui/labels';
+import { composeScene } from '../render/scene';
+import { TableCanvas } from './TableCanvas';
 import { Gauge } from './common';
 
 export interface Floater {
@@ -69,6 +71,20 @@ export function CasinoLane({
           Boss : <span className="font-semibold">{boss.title}</span> — {boss.name}
         </p>
       )}
+
+      <TableCanvas
+        scene={composeScene({
+          ambiance: casino.ambiance,
+          casino: casino.number,
+          floorInCasino: floor.floorInCasino,
+          isBoss: floor.isBoss,
+          tier: casino.tier,
+          members: members.map((p) => p.classId),
+          coverRatio,
+          retreat: run.phase.kind === 'retreat',
+        })}
+        flash={floaters.some((f) => f.kind === 'jackpot')}
+      />
 
       {members.length === 0 ? (
         <p className="py-4 text-center text-sm text-stone-500">Aucun Joueur : choisis-en un dans le roster.</p>
