@@ -2,13 +2,17 @@
 
 Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
 
+> **Projet clos pour l'instant** : dépôt GitHub passé en **privé**, site GitHub Pages **désactivé**, déploiement automatique **désactivé**.
+> Vérifié avant fermeture : aucune information personnelle dans les fichiers ni dans l'historique (commits signés avec l'adresse noreply GitHub, PDF Gemini jamais publié).
+> La procédure de réouverture est dans [CLAUDE.md](../CLAUDE.md).
+
 ## Où on en est
 
 | Étape | État |
 |---|---|
 | 0. Outils (Git, GitHub CLI, Node 26) | ✅ Fait |
 | Conception : 29 décisions prises en séance de questions | ✅ Fait, voir [spec-v1.md](spec-v1.md) |
-| 1. Projet, dépôt public, mise en ligne automatique | ✅ Fait : https://zandaar.github.io/syndicate-of-odds/ (page provisoire) |
+| 1. Projet, dépôt public, mise en ligne automatique | ✅ Fait, puis fermé : dépôt privé, site désactivé |
 | 2. Moteur + simulateur d'équilibrage (41 tests) | ✅ Fait |
 | 3. Noms générés + Traits + Bureau de recrutement | ⏭️ **Prochaine étape** |
 | 4. Interface jouable (QG, Casinos, Équipe) | À faire |

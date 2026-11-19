@@ -27,4 +27,4 @@ Puis ouvre l'adresse affichée (souvent http://localhost:5173).
 
 ## Mettre en ligne
 
-Chaque envoi sur la branche `main` de GitHub met le jeu en ligne automatiquement (voir `.github/workflows/deploy.yml`).
+Pour l'instant, le dépôt est **privé** et la mise en ligne est **désactivée**. Une fois réactivée (voir CLAUDE.md), chaque envoi sur la branche `main` de GitHub met le jeu en ligne automatiquement (voir `.github/workflows/deploy.yml`).
