@@ -7,6 +7,7 @@ import { paidRefreshCost } from '../engine/recruitment';
 import type { Player } from '../engine/types';
 import { RARITY_COLOR, RARITY_LABEL, className } from '../ui/labels';
 import { Button, Money, Panel, StatLine } from './common';
+import { BuildingsPanel, MasteryPanel, ShopPanel } from './QGPanels';
 
 export function HQPanel({ game, dispatch, now }: { game: GameState; dispatch: (action: GameAction) => void; now: number }) {
   const scientific = game.settings.scientific;
@@ -39,9 +40,9 @@ export function HQPanel({ game, dispatch, now }: { game: GameState; dispatch: (a
           </Button>
         </div>
       </Panel>
-      <Panel title="Boutique VIP">
-        <p className="text-sm text-stone-500">Bientôt : les Gadgets à acheter avec tes Jetons VIP.</p>
-      </Panel>
+      <BuildingsPanel game={game} dispatch={dispatch} />
+      <ShopPanel game={game} dispatch={dispatch} />
+      <MasteryPanel game={game} />
       <Panel title="Succès">
         <p className="text-sm text-stone-500">Bientôt.</p>
       </Panel>

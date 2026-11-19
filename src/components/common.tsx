@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { Decimal } from '../engine/bignum';
 import { formatNumber } from '../engine/format';
 import { getPlayerStats } from '../engine/economy';
-import type { Player } from '../engine/types';
+import type { GlobalBonuses, Player } from '../engine/types';
 
 export function Panel({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
   return (
@@ -66,8 +66,8 @@ export function Button({
 }
 
 /** Les 4 stats d'un Joueur sur une ligne. */
-export function StatLine({ player, scientific }: { player: Player; scientific: boolean }) {
-  const stats = getPlayerStats(player);
+export function StatLine({ player, scientific, bonuses }: { player: Player; scientific: boolean; bonuses?: GlobalBonuses }) {
+  const stats = getPlayerStats(player, bonuses);
   const items = [
     ['Flair', formatNumber(stats.flair, { scientific })],
     ['Chance', `${Math.round(stats.luck)} %`],

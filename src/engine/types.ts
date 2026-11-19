@@ -112,10 +112,16 @@ export interface Player {
   gear: Record<GearSlot, string | null>;
 }
 
-/** Bonus valables pour tout le Syndicat (Réseau, Succès). */
+/** Bonus valables pour tout le Syndicat (Maîtrise, Gadgets, Bâtiments, Réseau, Succès). */
 export interface GlobalBonuses {
   /** Multiplicateur de tout le Cash gagné (1 = normal). */
   cashMult: number;
+  /** Bonus de prime de fin d'Étage pour toutes les Équipes (0,1 = +10 %). */
+  floorBonus?: number;
+  /** Niveau de Maîtrise de chaque Classe. */
+  masteryLevels?: Partial<Record<ClassId, number>>;
+  /** Rang de chaque Gadget possédé (1 au moment de l'achat). */
+  itemRanks?: Record<string, number>;
 }
 
 /** Un Étage, entièrement déduit de son numéro. */

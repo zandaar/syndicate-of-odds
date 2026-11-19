@@ -5,7 +5,9 @@ import { CLASSES } from '../data/classes';
 import { TRAITS_BY_ID } from '../data/traits';
 import { reputationToNext } from '../engine/economy';
 import { formatNumber } from '../engine/format';
-import { isTeamUnlocked, teamOf, type GameAction, type GameState, type TeamIndex } from '../engine/game';
+import { bonusesOf, isTeamUnlocked, teamOf, wearerOf, type GameAction, type GameState, type TeamIndex } from '../engine/game';
+import { ITEMS, ITEMS_BY_ID } from '../data/items';
+import type { GearSlot } from '../engine/types';
 import { dismissRefund } from '../engine/recruitment';
 import { talentPoints } from '../engine/talents';
 import type { Player } from '../engine/types';
@@ -89,7 +91,7 @@ function PlayerSheet({
           <span className="text-emerald-300">Force :</span> {def.strength} <span className="text-rose-300">Faiblesse :</span>{' '}
           {def.weakness} <span className="text-gold">Passif :</span> {def.passive}
         </p>
-        <StatLine player={player} scientific={scientific} />
+        <StatLine player={player} scientific={scientific} bonuses={bonusesOf(game)} />
 
         <ul className="mt-2 text-xs text-stone-300">
           {player.traitIds.map((id) => {
@@ -113,6 +115,8 @@ function PlayerSheet({
             {team === null ? 'Sur le banc : ce Joueur ne gagne pas de Réputation.' : 'Gagne de la Réputation à la Table avec son Équipe.'}
           </p>
         </section>
+
+        <GearSection game={game} player={player} dispatch={dispatch} />
 
         <TalentTree game={game} player={player} dispatch={dispatch} />
 
@@ -147,5 +151,50 @@ function PlayerSheet({
         </section>
       </article>
     </div>
+  );
+}
+
+/** Les deux emplacements d'équipement du Joueur, avec les Gadgets possédés. */
+function GearSection({ game, player, dispatch }: { game: GameState; player: Player; dispatch: (action: GameAction) => void }) {
+  const slots: [GearSlot, string][] = [
+    ['accessory', 'Accessoire'],
+    ['gadget', 'Gadget'],
+  ];
+  return (
+    <section className="mt-3">
+      <p className="mb-1 text-xs text-stone-400">Équipement</p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {slots.map(([slot, label]) => {
+          const current = player.gear[slot];
+          const owned = ITEMS.filter((item) => item.slot === slot && game.items[item.id]);
+          return (
+            <label key={slot} className="flex flex-col gap-1 text-[11px] text-stone-400">
+              {label}
+              <select
+                className="rounded border border-stone-700 bg-night px-1 py-1 text-xs text-stone-200"
+                value={current ?? ''}
+                onChange={(e) =>
+                  dispatch(e.target.value ? { type: 'equip', playerId: player.id, itemId: e.target.value } : { type: 'unequip', playerId: player.id, slot })
+                }
+              >
+                <option value="">— vide —</option>
+                {owned.map((item) => {
+                  const wearer = wearerOf(game, item.id);
+                  const note = wearer && wearer.id !== player.id ? ` (porté par ${wearer.name})` : '';
+                  return (
+                    <option key={item.id} value={item.id}>
+                      {item.name} · rang {game.items[item.id]?.rank}
+                      {note}
+                    </option>
+                  );
+                })}
+              </select>
+              {current && <span className="text-stone-500">{ITEMS_BY_ID.get(current)?.description}</span>}
+            </label>
+          );
+        })}
+      </div>
+      {Object.keys(game.items).length === 0 && <p className="text-[11px] text-stone-500">Achète des Gadgets à la Boutique du QG.</p>}
+    </section>
   );
 }

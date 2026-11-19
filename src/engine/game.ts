@@ -1,13 +1,34 @@
 // État de partie et règles du jeu côté joueur : actions et passage du temps.
 // L'interface ne fait qu'afficher cet état et envoyer des actions.
 import { BALANCE } from '../data/balance';
+import { BUILDINGS, type BuildingId } from '../data/buildings';
+import { CLASSES } from '../data/classes';
+import { ITEMS_BY_ID } from '../data/items';
 import { D, type Decimal } from './bignum';
+import { buildingCost, buildingEffects, noBuildings, type BuildingEffects, type BuildingLevels } from './buildings';
 import { startTeamRun, tickTeam, type TeamEvent, type TeamRun } from './combat';
-import { buildTeamProfile, gainReputation, type TeamProfile } from './economy';
+import {
+  buildTeamProfile,
+  gadgetBuyCost,
+  gadgetUpgradeCost,
+  gainReputation,
+  masteryBonusPoints,
+  masteryFromTotal,
+  type TeamProfile,
+} from './economy';
 import { createRng, type Rng } from './random';
-import { dismissPlayer, generateCandidate, hireCandidate, openOffice, paidRefresh, refreshIfDue, type RecruitmentOffice } from './recruitment';
+import {
+  dismissPlayer,
+  generateCandidate,
+  hireCandidate,
+  openOffice,
+  paidRefresh,
+  refreshIfDue,
+  type OfficeContext,
+  type RecruitmentOffice,
+} from './recruitment';
 import { learnTalent, resetTalents, type TalentRefusal } from './talents';
-import type { ClassId, GlobalBonuses, Player } from './types';
+import type { ClassId, GearSlot, GlobalBonuses, Player } from './types';
 
 export interface TeamState {
   memberIds: string[];
@@ -23,6 +44,11 @@ export interface GameState {
   office: RecruitmentOffice;
   /** Étage le plus haut validé pendant ce tour (avant Blanchiment). */
   highestCleared: number;
+  /** Réputation cumulée par Classe : elle fait la Maîtrise de Classe et survit au Blanchiment. */
+  mastery: Record<ClassId, Decimal>;
+  /** Gadgets possédés (un exemplaire chacun) et leur rang. */
+  items: Record<string, { rank: number }>;
+  buildings: BuildingLevels;
   /** Millisecondes pas encore transformées en tick. */
   pendingMs: number;
   settings: { scientific: boolean };
@@ -39,6 +65,11 @@ export type GameAction =
   | { type: 'assign'; playerId: string; team: TeamIndex | null }
   | { type: 'setTeamOptions'; team: TeamIndex; auto?: boolean; safeRetreat?: boolean }
   | { type: 'dismiss'; playerId: string }
+  | { type: 'buyItem'; itemId: string }
+  | { type: 'upgradeItem'; itemId: string }
+  | { type: 'equip'; playerId: string; itemId: string }
+  | { type: 'unequip'; playerId: string; slot: GearSlot }
+  | { type: 'upgradeBuilding'; buildingId: BuildingId }
   | { type: 'toggleScientific' };
 
 export type GameError =
@@ -50,6 +81,10 @@ export type GameError =
   | 'team-locked'
   | 'last-player'
   | 'not-enough-vip'
+  | 'unknown-item'
+  | 'already-owned'
+  | 'not-owned'
+  | 'unknown-building'
   | TalentRefusal;
 
 export interface ActionResult {
@@ -66,14 +101,38 @@ export interface AdvanceResult {
   events: GameEvent[];
 }
 
-/** Au-delà, l'absence est traitée par les gains hors-ligne (étape 5). */
+/** Au-delà, l'absence est traitée par les gains hors-ligne (étape 6). */
 export const MAX_TICKS_PER_ADVANCE = 7200;
 
-const BONUSES: GlobalBonuses = { cashMult: 1 };
+const CLASS_IDS = Object.keys(CLASSES) as ClassId[];
 
-/** Niveau de Maîtrise d'une Classe (étape 5B : encore à 0 pour toutes). */
-export function masteryLevel(_state: GameState, _classId: ClassId): number {
-  return 0;
+function noMastery(): Record<ClassId, Decimal> {
+  return Object.fromEntries(CLASS_IDS.map((id) => [id, D(0)])) as Record<ClassId, Decimal>;
+}
+
+/** Niveau de Maîtrise d'une Classe. */
+export function masteryLevel(state: GameState, classId: ClassId): number {
+  return masteryFromTotal(state.mastery[classId]).level;
+}
+
+/** Effets actuels des Bâtiments. */
+export function effectsOf(state: GameState): BuildingEffects {
+  return buildingEffects(state.buildings);
+}
+
+/** Tous les bonus du Syndicat qui touchent les Équipes. */
+export function bonusesOf(state: GameState): GlobalBonuses {
+  return {
+    cashMult: 1,
+    floorBonus: effectsOf(state).floorBonus,
+    masteryLevels: Object.fromEntries(CLASS_IDS.map((id) => [id, masteryLevel(state, id)])),
+    itemRanks: Object.fromEntries(Object.entries(state.items).map(([id, item]) => [id, item.rank])),
+  };
+}
+
+function officeContext(state: GameState, now: number): OfficeContext {
+  const effects = effectsOf(state);
+  return { now, roster: state.roster, rarityWeights: effects.rarityWeights, candidates: effects.candidates };
 }
 
 function withPlayer(state: GameState, player: Player): GameState {
@@ -81,8 +140,8 @@ function withPlayer(state: GameState, player: Player): GameState {
 }
 
 /**
- * Après un changement de Talents, la Couverture maximale peut changer : on garde la Table en cours
- * mais on ramène la Couverture dans les nouvelles limites.
+ * Après un changement de Talents ou d'équipement, la Couverture maximale peut changer : on garde la
+ * Table en cours mais on ramène la Couverture dans les nouvelles limites.
  */
 function refreshTeamOf(state: GameState, playerId: string): GameState {
   const team = teamOf(state, playerId);
@@ -105,13 +164,18 @@ export function teamMembers(state: GameState, team: TeamIndex): Player[] {
 }
 
 export function teamProfile(state: GameState, team: TeamIndex): TeamProfile {
-  return buildTeamProfile(teamMembers(state, team), BONUSES);
+  return buildTeamProfile(teamMembers(state, team), bonusesOf(state));
 }
 
 export function teamOf(state: GameState, playerId: string): TeamIndex | null {
   if (state.teams[0].memberIds.includes(playerId)) return 0;
   if (state.teams[1].memberIds.includes(playerId)) return 1;
   return null;
+}
+
+/** Joueur qui porte ce Gadget, s'il y en a un. */
+export function wearerOf(state: GameState, itemId: string): Player | null {
+  return state.roster.find((p) => p.gear.accessory === itemId || p.gear.gadget === itemId) ?? null;
 }
 
 /** Relance la Table de l'Équipe au même Étage (après un changement de composition). */
@@ -141,7 +205,7 @@ export function newGame(seed: number, now: number, starter?: Player): GameState 
       classId: 'gambler',
       rarityWeights: { common: 1, rare: 0, epic: 0, legendary: 0 },
     });
-  const emptyProfile = buildTeamProfile([], BONUSES);
+  const emptyProfile = buildTeamProfile([], { cashMult: 1 });
   const base: GameState = {
     cash: D(0),
     vip: 0,
@@ -152,6 +216,9 @@ export function newGame(seed: number, now: number, starter?: Player): GameState 
     ],
     office: openOffice(Math.floor(rng() * 2 ** 32), { now, roster: [first] }),
     highestCleared: 0,
+    mastery: noMastery(),
+    items: {},
+    buildings: noBuildings(),
     pendingMs: 0,
     settings: { scientific: false },
     stats: { jackpots: 0 },
@@ -172,13 +239,17 @@ export function applyAction(state: GameState, action: GameAction, now: number): 
         action.candidateId,
       );
       if (!result.ok) return fail(state, result.reason);
-      return { state: { ...state, office: result.office, roster: result.roster, cash: result.cash }, error: null };
+      // Les recrues d'une Classe bien maîtrisée arrivent avec des points de Talent.
+      const roster = result.roster.map((p) =>
+        p.id === action.candidateId ? { ...p, bonusTalentPoints: masteryBonusPoints(masteryLevel(state, p.classId)) } : p,
+      );
+      return { state: { ...state, office: result.office, roster, cash: result.cash }, error: null };
     }
 
     case 'refreshOffice': {
       const result = paidRefresh(
         { office: state.office, cash: state.cash, highestFloor: state.highestCleared },
-        { now, roster: state.roster },
+        officeContext(state, now),
       );
       if (!result.ok) return fail(state, result.reason);
       return { state: { ...state, office: result.office, cash: result.cash }, error: null };
@@ -234,9 +305,89 @@ export function applyAction(state: GameState, action: GameAction, now: number): 
       return { state: { ...unassigned, roster: result.roster, cash: unassigned.cash.add(result.refund) }, error: null };
     }
 
+    case 'buyItem': {
+      const item = ITEMS_BY_ID.get(action.itemId);
+      if (!item) return fail(state, 'unknown-item');
+      if (state.items[item.id]) return fail(state, 'already-owned');
+      const cost = gadgetBuyCost(item.price);
+      if (state.cash.lt(cost)) return fail(state, 'not-enough-cash');
+      return { state: { ...state, cash: state.cash.sub(cost), items: { ...state.items, [item.id]: { rank: 1 } } }, error: null };
+    }
+
+    case 'upgradeItem': {
+      const item = ITEMS_BY_ID.get(action.itemId);
+      if (!item) return fail(state, 'unknown-item');
+      const owned = state.items[item.id];
+      if (!owned) return fail(state, 'not-owned');
+      const cost = gadgetUpgradeCost(item.price, owned.rank);
+      if (state.cash.lt(cost)) return fail(state, 'not-enough-cash');
+      const next = { ...state, cash: state.cash.sub(cost), items: { ...state.items, [item.id]: { rank: owned.rank + 1 } } };
+      const wearer = wearerOf(next, item.id);
+      return { state: wearer ? refreshTeamOf(next, wearer.id) : next, error: null };
+    }
+
+    case 'equip': {
+      const item = ITEMS_BY_ID.get(action.itemId);
+      if (!item) return fail(state, 'unknown-item');
+      if (!state.items[item.id]) return fail(state, 'not-owned');
+      const player = state.roster.find((p) => p.id === action.playerId);
+      if (!player) return fail(state, 'unknown-player');
+      // Un Gadget n'est porté que par un Joueur à la fois : on le retire à son ancien porteur.
+      let next = state;
+      const previous = wearerOf(state, item.id);
+      if (previous && previous.id !== player.id) {
+        next = refreshTeamOf(withPlayer(next, { ...previous, gear: { ...previous.gear, [item.slot]: null } }), previous.id);
+      }
+      const target = next.roster.find((p) => p.id === player.id)!;
+      next = withPlayer(next, { ...target, gear: { ...target.gear, [item.slot]: item.id } });
+      return { state: refreshTeamOf(next, player.id), error: null };
+    }
+
+    case 'unequip': {
+      const player = state.roster.find((p) => p.id === action.playerId);
+      if (!player) return fail(state, 'unknown-player');
+      const next = withPlayer(state, { ...player, gear: { ...player.gear, [action.slot]: null } });
+      return { state: refreshTeamOf(next, player.id), error: null };
+    }
+
+    case 'upgradeBuilding': {
+      if (!BUILDINGS[action.buildingId]) return fail(state, 'unknown-building');
+      const level = state.buildings[action.buildingId];
+      const cost = buildingCost(action.buildingId, level);
+      if (state.cash.lt(cost)) return fail(state, 'not-enough-cash');
+      return {
+        state: { ...state, cash: state.cash.sub(cost), buildings: { ...state.buildings, [action.buildingId]: level + 1 } },
+        error: null,
+      };
+    }
+
     case 'toggleScientific':
       return { state: { ...state, settings: { ...state.settings, scientific: !state.settings.scientific } }, error: null };
   }
+}
+
+/**
+ * Distribue la Réputation gagnée par les Équipes : à parts égales entre leurs membres, plus une part
+ * pour le banc grâce à la Salle d'entraînement. Toute Réputation nourrit la Maîtrise de sa Classe.
+ */
+export function distributeReputation(state: GameState, perTeam: [Decimal, Decimal]): GameState {
+  const bench = state.roster.filter((p) => teamOf(state, p.id) === null);
+  const benchPool = perTeam[0].add(perTeam[1]).mul(effectsOf(state).benchShare);
+  const mastery = { ...state.mastery };
+
+  const roster = state.roster.map((player) => {
+    const team = teamOf(state, player.id);
+    const share =
+      team !== null
+        ? perTeam[team].div(state.teams[team].memberIds.length)
+        : bench.length > 0
+          ? benchPool.div(bench.length)
+          : D(0);
+    if (share.lte(0)) return player;
+    mastery[player.classId] = mastery[player.classId].add(share);
+    return gainReputation(player, share);
+  });
+  return { ...state, roster, mastery };
 }
 
 /** Fait avancer la partie de `elapsedMs` millisecondes (ticks de 0,5 s). */
@@ -253,7 +404,7 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
   let highestCleared = state.highestCleared;
   let jackpots = state.stats.jackpots;
   const events: GameEvent[] = [];
-  const teamReputation = [D(0), D(0)];
+  const teamReputation: [Decimal, Decimal] = [D(0), D(0)];
 
   for (let tick = 0; tick < ticks; tick++) {
     for (const team of [0, 1] as const) {
@@ -261,7 +412,7 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
       const outcome = tickTeam(runs[team], profiles[team], { highestCleared }, rng);
       runs[team] = outcome.run;
       cash = cash.add(outcome.cash);
-      teamReputation[team] = teamReputation[team]!.add(outcome.reputation);
+      teamReputation[team] = teamReputation[team].add(outcome.reputation);
       vip += outcome.vip;
       if (outcome.clearedFloor !== null) highestCleared = Math.max(highestCleared, outcome.clearedFloor);
       for (const event of outcome.events) {
@@ -271,17 +422,9 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
     }
   }
 
-  // La Réputation est partagée à parts égales entre les membres de chaque Équipe.
-  const roster = state.roster.map((player) => {
-    const team = teamOf(state, player.id);
-    if (team === null) return player;
-    const share = teamReputation[team]!.div(state.teams[team].memberIds.length);
-    return gainReputation(player, share);
-  });
-
+  const withReputation = distributeReputation(state, teamReputation);
   const next: GameState = {
-    ...state,
-    roster,
+    ...withReputation,
     cash,
     vip,
     highestCleared,
@@ -291,7 +434,7 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
       { ...state.teams[1], run: runs[1] },
     ],
     stats: { ...state.stats, jackpots },
-    office: refreshIfDue(state.office, { now, roster: state.roster }),
+    office: refreshIfDue(state.office, officeContext(state, now)),
   };
   // On ne garde que les derniers événements : l'interface n'en affiche que quelques-uns.
   return { state: next, ticks, events: events.slice(-50) };

@@ -41,6 +41,7 @@ npm run build    # vérification des types + version en ligne
 - Pour rouvrir (seulement s'il le demande) : `gh repo edit zandaar/syndicate-of-odds --visibility public --accept-visibility-change-consequences`, puis `gh api -X POST repos/zandaar/syndicate-of-odds/pages -f build_type=workflow`, puis `gh workflow enable deploy.yml -R zandaar/syndicate-of-odds` et un push sur `main`. Sur un compte gratuit, GitHub Pages exige un dépôt public.
 - Branche `main`. Quand le workflow est actif, chaque push sur `main` teste, compile et publie (`.github/workflows/deploy.yml`).
 - L'e-mail de commit du dépôt est l'adresse noreply GitHub (déjà configurée dans `.git/config`) : ne jamais publier l'e-mail personnel.
+- `git push` est autorisé par `.claude/settings.local.json` (fichier personnel, non publié) **seulement s'il est lancé seul** : faire le commit dans une commande, puis `git push` dans une autre.
 - `gh` n'est pas dans le PATH du shell de Claude : utiliser `& "C:\Program Files\GitHub CLI\gh.exe"`.
 - Messages de commit en français ; écrire le message dans un fichier temporaire et utiliser `git commit -F` (PowerShell 5.1 casse les here-strings passées à git).
 - Pas de Python sur la machine : scripts en Node ou PowerShell.

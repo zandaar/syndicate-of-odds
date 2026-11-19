@@ -105,6 +105,8 @@ export interface OfficeContext {
   now: number;
   roster: Player[];
   rarityWeights?: RarityWeights;
+  /** Nombre de Candidats proposés (3 par défaut, plus avec l'Agence). */
+  candidates?: number;
 }
 
 export type OfficeFailure = { ok: false; reason: 'not-enough-cash' | 'roster-full' | 'unknown-candidate' };
@@ -113,7 +115,7 @@ function drawCandidates(seed: number, context: OfficeContext, refreshedAt: numbe
   const rng = createRng(seed);
   const taken = new Set(context.roster.map((player) => player.name));
   const candidates: Player[] = [];
-  for (let i = 0; i < BALANCE.office.candidates; i++) {
+  for (let i = 0; i < (context.candidates ?? BALANCE.office.candidates); i++) {
     const candidate = generateCandidate(rng, {
       now: new Date(context.now),
       takenNames: taken,

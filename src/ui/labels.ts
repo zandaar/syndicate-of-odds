@@ -38,4 +38,8 @@ export const ERROR_TEXT: Record<GameError, string> = {
   'max-rank': 'Ce Talent est déjà au rang maximal.',
   'locked-points': "Mets d'abord plus de points dans cette branche.",
   'locked-mastery': 'Talent ultime : il faut la Maîtrise de Classe 5.',
+  'unknown-item': 'Ce Gadget est inconnu.',
+  'already-owned': 'Tu possèdes déjà ce Gadget : améliore-le plutôt.',
+  'not-owned': "Achète d'abord ce Gadget à la Boutique.",
+  'unknown-building': 'Ce Bâtiment est inconnu.',
 };

@@ -45,6 +45,29 @@ export const BALANCE = {
    */
   reputation: { base: 5000, growth: 1.2, floorBonusRatio: 0.3 },
 
+  /**
+   * Maîtrise de Classe : il faut base × growth^niveau de Réputation (cumulée par tous les Joueurs
+   * de la Classe) pour gagner un niveau de Maîtrise.
+   */
+  mastery: {
+    base: 20000,
+    growth: 1.3,
+    /** Bonus de toutes les stats par niveau de Maîtrise (0,02 = +2 %). */
+    statPerLevel: 0.02,
+    /** Niveaux de Maîtrise qui offrent 1 point de Talent de départ aux nouvelles recrues. */
+    bonusPointLevels: [10, 25, 50],
+  },
+
+  /** Gadgets : achetés et améliorés avec du Cash. */
+  gadgets: {
+    /** Prix d'achat = `price` du catalogue × cette valeur. */
+    cashPerPrice: 150,
+    /** Chaque rang coûte ×upgradeGrowth de plus que le précédent. */
+    upgradeGrowth: 1.6,
+    /** Chaque rang multiplie les stats du Gadget par statGrowth. */
+    statGrowth: 1.15,
+  },
+
   /** Arbres de Talents. */
   talents: {
     ranks: 3,

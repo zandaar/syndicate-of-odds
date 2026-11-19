@@ -110,9 +110,23 @@ function scaled(modifier: Modifier, rank: number): Modifier {
   }
 }
 
-/** Tous les effets portés par un Joueur : Classe, Traits, Gadgets, Talents. */
-function collectModifiers(player: Player): Modifier[] {
+const NO_BONUSES: GlobalBonuses = { cashMult: 1 };
+
+/** Multiplicateur des stats d'un Gadget à un rang donné. */
+export function gadgetStatMult(rank: number): number {
+  return BALANCE.gadgets.statGrowth ** (Math.max(1, rank) - 1);
+}
+
+/** Tous les effets portés par un Joueur : Classe, Maîtrise, Traits, Gadgets, Talents. */
+function collectModifiers(player: Player, bonuses: GlobalBonuses): Modifier[] {
   const modifiers: Modifier[] = [...CLASSES[player.classId].modifiers];
+
+  const mastery = bonuses.masteryLevels?.[player.classId] ?? 0;
+  if (mastery > 0) {
+    for (const stat of ['flair', 'luck', 'composure', 'stealth'] as const) {
+      modifiers.push({ kind: 'statPercent', stat, value: mastery * BALANCE.mastery.statPerLevel });
+    }
+  }
 
   for (const traitId of player.traitIds) {
     const trait = TRAITS_BY_ID.get(traitId);
@@ -123,8 +137,9 @@ function collectModifiers(player: Player): Modifier[] {
     if (!itemId) continue;
     const item = ITEMS_BY_ID.get(itemId);
     if (!item) continue;
+    const statMult = gadgetStatMult(bonuses.itemRanks?.[itemId] ?? 1);
     for (const [stat, value] of Object.entries(item.stats)) {
-      modifiers.push({ kind: 'statFlat', stat: stat as StatId, value });
+      modifiers.push({ kind: 'statFlat', stat: stat as StatId, value: value * statMult });
     }
     // Les effets d'un Gadget de Classe ne marchent que sur sa Classe.
     if (!item.classId || item.classId === player.classId) modifiers.push(...item.effects);
@@ -165,14 +180,14 @@ function statsFrom(player: Player, modifiers: Modifier[]): PlayerStats {
 }
 
 /** Stats d'un Joueur seul, telles qu'affichées dans le roster. */
-export function getPlayerStats(player: Player): PlayerStats {
-  return statsFrom(player, collectModifiers(player));
+export function getPlayerStats(player: Player, bonuses: GlobalBonuses = NO_BONUSES): PlayerStats {
+  return statsFrom(player, collectModifiers(player, bonuses));
 }
 
 /** Calcule ce que vaut une Équipe à la Table. */
 export function buildTeamProfile(players: Player[], bonuses: GlobalBonuses): TeamProfile {
   const perPlayer = players.map((player) => {
-    const modifiers = collectModifiers(player);
+    const modifiers = collectModifiers(player, bonuses);
     return { player, modifiers, stats: statsFrom(player, modifiers) };
   });
   const all = perPlayer.flatMap((p) => p.modifiers);
@@ -242,7 +257,7 @@ export function buildTeamProfile(players: Player[], bonuses: GlobalBonuses): Tea
     bossStealthMult: 1 + sumOf(all, 'bossStealth', (m) => m.value),
     pressureMult: Math.max(0.1, 1 + sumOf(all, 'pressure', (m) => m.value)),
     bossPressureMult: Math.max(0, 1 + sumOf(all, 'bossPressure', (m) => m.value)),
-    floorBonusMult: 1 + sumOf(all, 'floorBonus', (m) => m.value),
+    floorBonusMult: 1 + sumOf(all, 'floorBonus', (m) => m.value) + (bonuses.floorBonus ?? 0),
     bossFloorBonusMult: 1 + sumOf(all, 'bossFloorBonus', (m) => m.value),
     offlineMult: 1 + sumOf(all, 'offline', (m) => m.value),
     reputationMult: 1 + sumOf(all, 'reputation', (m) => m.value),
@@ -275,6 +290,39 @@ export function gainReputation(player: Player, amount: Decimal): Player {
     level += 1;
   }
   return { ...player, reputation, level };
+}
+
+/** Réputation de Classe nécessaire pour passer du niveau de Maîtrise `level` au suivant. */
+export function masteryToNext(level: number): Decimal {
+  return D(BALANCE.mastery.growth).pow(level).mul(BALANCE.mastery.base);
+}
+
+/** Niveau de Maîtrise atteint avec cette Réputation cumulée, et progression vers le suivant. */
+export function masteryFromTotal(total: Decimal): { level: number; progress: Decimal; next: Decimal } {
+  let remaining = total;
+  let level = 0;
+  for (let guard = 0; guard < 10_000; guard++) {
+    const next = masteryToNext(level);
+    if (remaining.lt(next)) return { level, progress: remaining, next };
+    remaining = remaining.sub(next);
+    level += 1;
+  }
+  return { level, progress: remaining, next: masteryToNext(level) };
+}
+
+/** Points de Talent de départ offerts aux nouvelles recrues d'une Classe. */
+export function masteryBonusPoints(level: number): number {
+  return BALANCE.mastery.bonusPointLevels.filter((threshold) => level >= threshold).length;
+}
+
+/** Prix d'achat d'un Gadget. */
+export function gadgetBuyCost(price: number): Decimal {
+  return D(price * BALANCE.gadgets.cashPerPrice);
+}
+
+/** Prix pour faire passer un Gadget du rang `rank` au suivant. */
+export function gadgetUpgradeCost(price: number, rank: number): Decimal {
+  return gadgetBuyCost(price).mul(D(BALANCE.gadgets.upgradeGrowth).pow(rank));
 }
 
 /** Prix d'embauche d'un Candidat selon sa Rareté et l'Étage le plus haut atteint. */

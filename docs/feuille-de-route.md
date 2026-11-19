@@ -16,7 +16,7 @@ Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
 | 2. Moteur + simulateur d'équilibrage (41 tests) | ✅ Fait |
 | 3. Noms générés + Traits + Bureau de recrutement (73 tests au total) | ✅ Fait |
 | 4. Interface jouable (QG, Casinos, Équipe) — 94 tests | ✅ Fait, jouable en local (`npm run dev`) |
-| 5. **Refonte de la progression** : Réputation, Talents, Maîtrise de Classe, Gadgets en Cash, Bâtiments, nouveau simulateur | 🟡 **En cours** : 5A fait (Réputation, niveaux, 126 Talents, 124 tests) ; ⏭️ 5B Maîtrise, Gadgets, Bâtiments ; 5C équilibrage |
+| 5. **Refonte de la progression** : Réputation, Talents, Maîtrise de Classe, Gadgets en Cash, Bâtiments, nouveau simulateur | 🟡 **En cours** : 5A fait (Réputation, niveaux, 126 Talents) ; 5B fait (Maîtrise, Gadgets en Cash, Bâtiments — 139 tests) ; ⏭️ 5C simulateur et équilibrage |
 | 6. Sauvegarde locale, hors-ligne au retour, export/import | À faire |
 | 7. Succès, Blanchiment et Réseau | À faire |
 | 8. Pixel art des Tables et finitions | À faire |
@@ -53,7 +53,10 @@ Décidée le 19/11/2026 (voir [spec-v1.md](spec-v1.md) et [ADR 0003](adr/0003-ni
 1. ✅ Contenu des 6 Arbres de Talents (`src/data/talents.ts`, 126 Talents).
 2. ✅ Réputation : gagnée à la Table (= Cash raflé, partagée dans l'Équipe), bonus par Étage validé, Réputation hors-ligne (`gainReputation`, `reputationToNext`).
 3. ✅ Talents : effets dans `economy.ts` et `combat.ts` (18 Talents ultimes testés), dépense et redistribution (`src/engine/talents.ts`, 5 Jetons VIP), arbre dans la fiche Joueur (`TalentTree.tsx`). Le renvoi rend désormais 50 % du prix d'embauche.
-4. ⏭️ Maîtrise de Classe : Réputation cumulée par Classe, +2 % de stats par niveau, déblocage des Talents ultimes au niveau 5 (aujourd'hui `masteryLevel` renvoie toujours 0, donc les ultimes sont verrouillés), points de départ aux niveaux 10, 25 et 50.
+4. ✅ Maîtrise de Classe (`GameState.mastery`, `masteryFromTotal`) : toute Réputation nourrit sa Classe, +2 % de stats par niveau, Talents ultimes au niveau 5, points de départ aux niveaux 10, 25 et 50 ; panneau dans le QG.
+5. ✅ Gadgets en Cash (`buyItem`, `upgradeItem`, `equip`, `unequip`) : un exemplaire chacun, rangs à +60 % de coût et +15 % de stats ; Boutique dans le QG, équipement dans la fiche Joueur.
+6. ✅ Bâtiments (`src/data/buildings.ts`, `src/engine/buildings.ts`) : Salle d'entraînement, Planque, Agence, Coffre-fort.
+7. ⏭️ 5C : faire jouer au simulateur la Maîtrise, les Gadgets et les Bâtiments, puis régler les prix (`balance.ts`, `buildings.ts`, `items.ts`) pour garder l'Étage 50 en 1 à 2 jours.
 5. Gadgets achetés et améliorés en Cash (rangs à coût croissant) ; Boutique dans le QG.
 6. Bâtiments du QG : Salle d'entraînement, Planque, Agence, Coffre-fort.
 7. Retirer l'achat de niveaux en Cash (interface et moteur) ; réécrire le simulateur et revérifier le rythme (Étage 50 en 1 à 2 jours).

@@ -1,6 +1,9 @@
 // =====================================================================
 // CATALOGUE DES GADGETS (Boutique VIP)
 //
+// Les Gadgets s'achètent avec du Cash (prix = `price` × gadgets.cashPerPrice de
+// balance.ts) et s'améliorent rang par rang. Chaque Gadget existe en un seul
+// exemplaire et ne peut être porté que par un Joueur à la fois.
 // Chaque Joueur a 2 emplacements : 1 « accessory » (Accessoire) et 1 « gadget ».
 // Pour ajouter un Gadget : copie un bloc existant, change son `id` (unique,
 // en minuscules avec des tirets), son nom, son prix et ses effets.
