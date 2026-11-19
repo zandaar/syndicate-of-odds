@@ -13,6 +13,8 @@ import type { BaseStats, ClassId, Modifier } from '../engine/types';
 export interface ClassDef {
   id: ClassId;
   name: string;
+  /** Nom au féminin. */
+  nameF: string;
   /** Ce que la Classe apporte, en une phrase (affiché dans le jeu). */
   strength: string;
   weakness: string;
@@ -25,6 +27,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   gambler: {
     id: 'gambler',
     name: 'Flambeur',
+    nameF: 'Flambeuse',
     strength: 'Jackpots fréquents et énormes.',
     weakness: 'Fragile et irrégulier.',
     passive: 'Jackpots +25 %.',
@@ -34,6 +37,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   bluffer: {
     id: 'bluffer',
     name: 'Bluffeur',
+    nameF: 'Bluffeuse',
     strength: 'Énorme Sang-froid, haute Discrétion.',
     weakness: 'Rapporte très peu.',
     passive: "+20 % d'efficacité de Discrétion pour l'Équipe.",
@@ -43,6 +47,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   mastermind: {
     id: 'mastermind',
     name: 'Cerveau',
+    nameF: 'Cerveau',
     strength: 'Renforce ses coéquipiers.',
     weakness: 'Presque inutile seul.',
     passive: 'Coéquipiers : +10 % de Flair et +5 % de Chance.',
@@ -52,6 +57,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   counter: {
     id: 'counter',
     name: 'Compteur de cartes',
+    nameF: 'Compteuse de cartes',
     strength: 'Monte en puissance pendant une Table, idéal contre les Boss.',
     weakness: 'Démarre lentement et ne fait jamais de Jackpot.',
     passive: '+3 % de drain par tick passé sur la même Table (jusqu’à +150 %).',
@@ -61,6 +67,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   pickpocket: {
     id: 'pickpocket',
     name: 'Pickpocket',
+    nameF: 'Pickpocket',
     strength: 'Rapporte beaucoup de Cash hors des Tables.',
     weakness: 'Faible à la Table.',
     passive: "+30 % de prime de fin d'Étage et de gains hors-ligne.",
@@ -73,6 +80,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   saboteur: {
     id: 'saboteur',
     name: 'Saboteur',
+    nameF: 'Saboteuse',
     strength: 'Fait baisser la Pression, surtout celle des Boss.',
     weakness: 'Drain faible, inutile quand la Pression est basse.',
     passive: '−15 % de Pression et −30 % du supplément des Boss.',

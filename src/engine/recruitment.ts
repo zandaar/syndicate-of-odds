@@ -29,6 +29,8 @@ export interface CandidateOptions {
   takenNames: ReadonlySet<string>;
   /** Chances de chaque Rareté (le Réseau « Indics » les améliorera). */
   rarityWeights?: RarityWeights;
+  /** Impose la Classe (par exemple le Flambeur offert au départ). */
+  classId?: ClassId;
 }
 
 function pickRarity(rng: Rng, weights: RarityWeights): Rarity {
@@ -50,7 +52,7 @@ function pickTraits(rng: Rng, count: number): string[] {
 /** Tire un nouveau Candidat. */
 export function generateCandidate(rng: Rng, options: CandidateOptions): Player {
   const identity = generateIdentity(rng, {
-    classId: pick(rng, CLASS_IDS),
+    classId: options.classId ?? pick(rng, CLASS_IDS),
     rarity: pickRarity(rng, options.rarityWeights ?? DEFAULT_RARITY_WEIGHTS),
     now: options.now,
     takenNames: options.takenNames,

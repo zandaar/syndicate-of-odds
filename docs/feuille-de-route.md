@@ -15,8 +15,8 @@ Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
 | 1. Projet, dépôt public, mise en ligne automatique | ✅ Fait, puis fermé : dépôt privé, site désactivé |
 | 2. Moteur + simulateur d'équilibrage (41 tests) | ✅ Fait |
 | 3. Noms générés + Traits + Bureau de recrutement (73 tests au total) | ✅ Fait |
-| 4. Interface jouable (QG, Casinos, Équipe) | ⏭️ **Prochaine étape** |
-| 5. Sauvegarde locale, hors-ligne au retour, export/import | À faire |
+| 4. Interface jouable (QG, Casinos, Équipe) — 94 tests | ✅ Fait, jouable en local (`npm run dev`) |
+| 5. Sauvegarde locale, hors-ligne au retour, export/import | ⏭️ **Prochaine étape** |
 | 6. Succès, Boutique VIP, Blanchiment et Réseau | À faire |
 | 7. Pixel art des Tables et finitions | À faire |
 | Phase 2 : Firebase (comptes + sauvegarde cloud) | Plus tard |
@@ -36,20 +36,23 @@ Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
   - `simulator.ts` — `simulatePlaythrough` (test de rythme : Étage 50 en 20 à 48 h) ;
   - `names.ts` — `getCasino(n)`, `getBoss(étage)`, `generateIdentity` ;
   - `recruitment.ts` — `generateCandidate`, Bureau (`openOffice`, `refreshIfDue`, `paidRefresh`, `hireCandidate`, `dismissPlayer`) ;
-  - `charter.test.ts` — vérifie les dictionnaires contre la charte.
-- `src/App.tsx` : page provisoire « En construction ».
+  - `charter.test.ts` — vérifie les dictionnaires contre la charte ;
+  - `format.ts` — `formatNumber` (K, M, B, T, aa… ou notation scientifique) ;
+  - `game.ts` — `GameState`, `newGame`, `applyAction` (embauche, niveaux +1/+10/Max, affectation, options, renvoi), `advanceGame` (ticks, au plus 1 h rattrapée).
+- `src/App.tsx` : boucle de jeu (100 ms) et mise en page : 3 colonnes sur PC, 3 onglets sur mobile.
+- `src/components/` : `TopBar`, `HQPanel` (Bureau de recrutement ; Boutique et Succès en attente), `CasinoLane` (jauges, Boss, Auto, repli, gains flottants), `RosterSidebar` (liste + fiche du Joueur).
+- `src/ui/labels.ts` : textes affichés (Raretés, Classes au féminin, messages d'erreur).
+- `.claude/launch.json` : lance le jeu dans le navigateur intégré (`jeu`, port 5173).
+- Pas encore de sauvegarde : rafraîchir la page recommence la partie.
 
-## Prochaine étape en détail (étape 4 : interface jouable)
+## Prochaine étape en détail (étape 5 : sauvegarde)
 
-1. Un état de partie unique (`GameState` : Cash, Jetons VIP, roster, 2 Équipes, Bureau, Étage le plus haut) et une boucle de jeu (tick de 0,5 s) dans `App.tsx`, sans logique métier dans les composants.
-2. Disposition « Split-Screen » sur PC (QG à gauche, Casinos au centre, roster à droite) et 3 onglets sur mobile.
-3. QG : Bureau de recrutement (Candidats, embauche, renouvellement) ; montée de niveau des Joueurs.
-4. Casinos : une ligne par Équipe avec nom du Casino, Étage, Boss, jauges Caisse et Couverture, gains flottants, options Auto et repli sécurisé.
-5. Roster : liste des Joueurs, fiche détaillée (stats, Traits, Qualité), affectation aux Équipes (un Joueur dans une seule Équipe).
-6. Affichage des grands nombres (K, M, B, T, aa, ab…), à tester.
-7. Rouvrir le site public seulement si le créateur le demande (voir CLAUDE.md).
-
-Méthode : skill `tdd` pour la logique (état de partie, format des nombres), points de test à proposer au créateur avant de les écrire. Vérifier l'interface dans le navigateur intégré.
+1. `src/storage/SaveProvider.ts` (interface `load`, `save`, `exportData`, `importData`) et `LocalProvider.ts` (localStorage).
+2. Format de sauvegarde : `saveVersion: 1`, `lastSavedAt`, grands nombres en texte ; `migrations.ts` prêt pour les versions suivantes ; champ `prestigeLevel` prévu.
+3. Sauvegarde automatique toutes les 10 s et à la fermeture de l'onglet.
+4. Au retour : gains hors-ligne (`computeOfflineGains`, plafond 12 h) et fenêtre « Pendant ton absence (2 h 15), tes Équipes ont raflé +38,4K $ ».
+5. Fenêtre Sauvegarde / Transfert : copier une chaîne Base64, télécharger / importer `syndicate-save.json`, recommencer la partie avec confirmation.
+6. Points de test à proposer au créateur (par exemple : aller-retour sauvegarde → chargement identique, sauvegarde abîmée refusée sans perdre la partie, migration d'une ancienne version, gains au retour).
 
 ## Points ouverts à trancher plus tard
 

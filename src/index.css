@@ -15,6 +15,18 @@ body {
   color: #e8e2d4;
 }
 
+/* Gains qui s'envolent au-dessus des Tables. */
+@keyframes floatUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-28px);
+  }
+}
+
 /* Le pixel art doit rester net, sans flou à l'agrandissement. */
 canvas,
 .pixelated {

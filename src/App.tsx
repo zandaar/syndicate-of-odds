@@ -1,15 +1,116 @@
-// Page provisoire : elle sert à vérifier que la mise en ligne fonctionne.
-// Elle sera remplacée par l'interface du jeu (QG, Casinos, Équipe).
+// Assemblage de l'interface et boucle de jeu.
+// L'état de la partie vit ici ; toute la logique est dans src/engine/game.ts.
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { CasinoLane, type Floater } from './components/CasinoLane';
+import { HQPanel } from './components/HQPanel';
+import { RosterSidebar } from './components/RosterSidebar';
+import { TopBar } from './components/TopBar';
+import { formatNumber } from './engine/format';
+import { advanceGame, applyAction, newGame, type GameAction, type GameEvent, type GameState } from './engine/game';
+import { ERROR_TEXT } from './ui/labels';
+
+/** Fréquence de rafraîchissement de l'écran (le moteur, lui, avance par ticks de 0,5 s). */
+const FRAME_MS = 100;
+const FLOATER_MS = 1200;
+
+type Tab = 'hq' | 'casinos' | 'roster';
+
+let nextFloaterId = 1;
+
+function floaterFor(event: GameEvent, scientific: boolean): Floater | null {
+  const id = nextFloaterId++;
+  if (event.type === 'jackpot') return { id, team: event.team, kind: 'jackpot', text: `JACKPOT +${formatNumber(event.amount, { scientific })} $` };
+  if (event.type === 'victory') return { id, team: event.team, kind: 'victory', text: `Étage ${event.floor} validé !` };
+  return { id, team: event.team, kind: 'burned', text: 'Couverture grillée !' };
+}
+
 export default function App() {
+  const [game, setGame] = useState<GameState>(() => newGame(Math.floor(Math.random() * 2 ** 32), Date.now()));
+  const [now, setNow] = useState(() => Date.now());
+  const [floaters, setFloaters] = useState<Floater[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>('casinos');
+  const gameRef = useRef(game);
+
+  // Boucle de jeu.
+  useEffect(() => {
+    let last = Date.now();
+    const timer = window.setInterval(() => {
+      const current = Date.now();
+      const result = advanceGame(gameRef.current, current - last, current, Math.random);
+      last = current;
+      gameRef.current = result.state;
+      setGame(result.state);
+      setNow(current);
+      if (result.events.length > 0) {
+        const fresh = result.events
+          .slice(-4)
+          .map((event) => floaterFor(event, result.state.settings.scientific))
+          .filter((f): f is Floater => f !== null);
+        setFloaters((previous) => [...previous, ...fresh].slice(-12));
+        window.setTimeout(() => setFloaters((previous) => previous.filter((f) => !fresh.includes(f))), FLOATER_MS);
+      }
+    }, FRAME_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const dispatch = useCallback((action: GameAction) => {
+    const result = applyAction(gameRef.current, action, Date.now());
+    gameRef.current = result.state;
+    setGame(result.state);
+    if (result.error) {
+      setMessage(ERROR_TEXT[result.error]);
+      window.setTimeout(() => setMessage(null), 2500);
+    }
+  }, []);
+
+  const lanes = (
+    <div className="flex flex-col gap-3">
+      {([0, 1] as const).map((team) => (
+        <CasinoLane key={team} game={game} team={team} floaters={floaters.filter((f) => f.team === team)} dispatch={dispatch} />
+      ))}
+    </div>
+  );
+  const hq = <HQPanel game={game} dispatch={dispatch} now={now} />;
+  const roster = <RosterSidebar game={game} dispatch={dispatch} />;
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-      <h1 className="text-4xl font-bold tracking-wide text-gold">Syndicate of Odds</h1>
-      <p className="max-w-md text-stone-300">
-        Port-Sauvage, fin des années 60. Les tables sont prêtes, le syndicat se forme…
-      </p>
-      <p className="rounded border border-bordeaux bg-smoke px-3 py-1 text-sm text-stone-400">
-        En construction
-      </p>
-    </main>
+    <div className="min-h-screen pb-16 lg:pb-0">
+      <TopBar game={game} dispatch={dispatch} />
+
+      {/* PC : trois colonnes. */}
+      <main className="hidden gap-3 p-3 lg:grid lg:grid-cols-[minmax(300px,1fr)_minmax(0,2fr)_minmax(220px,0.8fr)]">
+        {hq}
+        {lanes}
+        {roster}
+      </main>
+
+      {/* Mobile : un onglet à la fois. */}
+      <main className="p-3 lg:hidden">{tab === 'hq' ? hq : tab === 'casinos' ? lanes : roster}</main>
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-stone-800 bg-night lg:hidden">
+        {(
+          [
+            ['hq', 'QG'],
+            ['casinos', 'Casinos'],
+            ['roster', 'Équipe'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={`py-3 text-sm ${tab === id ? 'text-gold' : 'text-stone-400'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {message && (
+        <div className="fixed bottom-20 left-1/2 z-40 -translate-x-1/2 rounded border border-bordeaux bg-smoke px-4 py-2 text-sm text-rose-200 lg:bottom-6">
+          {message}
+        </div>
+      )}
+    </div>
   );
 }
