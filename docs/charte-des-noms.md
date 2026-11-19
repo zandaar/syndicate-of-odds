@@ -15,7 +15,8 @@ La ville est cosmopolite : on y croise des familles françaises, italiennes, cor
 1. **Langue** : tout est en français. Seuls les noms propres (prénoms, noms de famille, certains lieux) peuvent être italiens, corses ou anglais.
 2. **Époque** : le vocabulaire courant reste crédible pour les années 60-70 (téléphone à cadran, oreillette, magnétophone… pas de « Wi-Fi » ni de « hacker »).
 3. **Ton** : sombre, élégant, avec une pointe d'ironie. Pas d'humour lourd ni de vulgarité.
-4. **Longueur** : 28 caractères maximum pour un Joueur ou un Boss, 32 pour un Casino, 24 pour un Gadget ou un Trait.
+4. **Longueur** : 28 caractères maximum pour un Joueur ou un nom de Boss, 20 pour un Titre de Boss, 32 pour un Casino, 24 pour un Gadget ou un Trait. Le test `src/engine/charter.test.ts` le vérifie.
+   Les surnoms-noms comme « La Fouine » ou « Le Fantôme » ne s'accordent pas (on peut dire Marcel « La Fouine ») ; seuls les adjectifs et les titres s'accordent.
 5. **Unicité** : jamais deux Joueurs du roster avec le même nom.
 6. **Accords** : chaque mot qui s'accorde existe au masculin et au féminin ; chaque nom commun connaît son genre (pour « Le / La / L' » et « du / de la / de l' »).
 7. **Cohérence d'origine** : le prénom et le nom de famille d'un même personnage ont la même origine.
@@ -67,7 +68,8 @@ Règle d'or : un Clin d'œil doit faire sourire n'importe quel joueur, jamais le
 
 ### 4.2 Boss
 
-`« Titre » — Prénom Nom`, par exemple « Le Videur » — Bruno Castelli.
+Un Titre et un nom, affichés séparément : par exemple **Le Videur** — Bruno Castelli.
+Titre : 20 caractères maximum ; nom : `Prénom Nom`, 28 caractères maximum.
 Les Titres montent en grade avec la profondeur : Videur, Chef de salle, Patron, Directeur, Baron, Parrain…
 Le même Étage donne toujours le même Boss.
 

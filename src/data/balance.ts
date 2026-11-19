@@ -41,6 +41,28 @@ export const BALANCE = {
   /** Recrutement : base × multiplicateur de Rareté × floorGrowth^(Étage le plus haut). */
   recruit: { base: 50, floorGrowth: 1.15 },
 
+  /** Bureau de recrutement. */
+  office: {
+    candidates: 3,
+    /** Renouvellement gratuit des Candidats, en minutes. */
+    refreshMinutes: 20,
+    /** Renouvellement immédiat : cette part du prix d'un Commun. */
+    paidRefreshRatio: 0.5,
+    rosterSize: 12,
+    /** Part du Cash dépensé en niveaux rendue quand on renvoie un Joueur. */
+    dismissRefund: 0.5,
+    /** Écart maximal des stats de départ (0,15 = ±15 %). */
+    qualitySpread: 0.15,
+  },
+
+  /** Noms : fréquence des Clins d'œil et des surnoms d'événement, longueurs maximales. */
+  names: {
+    winkChance: { rare: 1 / 200, epic: 1 / 50 },
+    casinoWinkChance: 1 / 100,
+    eventNicknameChance: 0.25,
+    maxLength: { player: 28, casino: 32, title: 20, short: 24 },
+  },
+
   /** Jetons VIP d'un Boss : base × growth^(numéro du Boss − 1), arrondi. */
   vip: { base: 2, growth: 1.15 },
 

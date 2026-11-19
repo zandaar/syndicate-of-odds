@@ -10,8 +10,10 @@ export function makePlayer(classId: ClassId, overrides: Partial<Omit<Player, 'cl
   return {
     id: overrides.id ?? `p${nextId++}`,
     name: overrides.name ?? `Test ${classId}`,
+    gender: overrides.gender ?? 'm',
     classId,
     rarity,
+    quality: overrides.quality ?? 100,
     baseStats: overrides.baseStats ?? { ...CLASSES[classId].baseStats },
     traitIds: overrides.traitIds ?? [],
     level: overrides.level ?? 1,

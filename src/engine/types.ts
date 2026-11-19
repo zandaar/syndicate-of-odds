@@ -62,8 +62,11 @@ export type Modifier =
 export interface Player {
   id: string;
   name: string;
+  gender: 'm' | 'f';
   classId: ClassId;
   rarity: Rarity;
+  /** Écart des stats de départ par rapport à la référence de la Classe, en % (85 à 115). */
+  quality: number;
   /** Stats de niveau 1, Rareté et Qualité déjà appliquées au recrutement. */
   baseStats: BaseStats;
   traitIds: string[];

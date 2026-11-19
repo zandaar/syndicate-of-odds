@@ -49,8 +49,10 @@ function referencePlayer(classId: ClassId, id: number): Player {
   return {
     id: `sim-${id}`,
     name: CLASSES[classId].name,
+    gender: 'm',
     classId,
     rarity: 'common',
+    quality: 100,
     baseStats: { ...CLASSES[classId].baseStats },
     traitIds: [],
     level: 1,
