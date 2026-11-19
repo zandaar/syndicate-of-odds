@@ -2,6 +2,7 @@
 
 Idle-RPG dans les casinos de Port-Sauvage : recrute un syndicat de joueurs professionnels et vide les Caisses d'Étages toujours plus difficiles.
 
+- Où en est le projet : [docs/feuille-de-route.md](docs/feuille-de-route.md)
 - Ce que fait le jeu : [docs/spec-v1.md](docs/spec-v1.md)
 - Le vocabulaire : [GLOSSARY.md](GLOSSARY.md)
 - Les règles des noms : [docs/charte-des-noms.md](docs/charte-des-noms.md)
