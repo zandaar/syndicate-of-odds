@@ -17,8 +17,8 @@ Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
 | 3. Noms générés + Traits + Bureau de recrutement (73 tests au total) | ✅ Fait |
 | 4. Interface jouable (QG, Casinos, Équipe) — 94 tests | ✅ Fait, jouable en local (`npm run dev`) |
 | 5. **Refonte de la progression** : Réputation, Talents, Maîtrise de Classe, Gadgets en Cash, Bâtiments, nouveau simulateur | ✅ Fait (140 tests) : Réputation, 126 Talents, Maîtrise, Gadgets en Cash, Bâtiments, simulateur qui joue via les vraies actions, rythme réglé |
-| 6. Sauvegarde locale, hors-ligne au retour, export/import | ⏭️ **Prochaine étape** (`applyOffline` existe déjà) |
-| 7. Succès, Blanchiment et Réseau | À faire |
+| 6. Sauvegarde locale, hors-ligne au retour, export/import | ✅ Fait (149 tests) |
+| 7. Succès, Blanchiment et Réseau | ⏭️ **Prochaine étape** |
 | 8. Pixel art des Tables et finitions | À faire |
 | Phase 2 : Firebase (comptes + sauvegarde cloud) | Plus tard |
 
@@ -63,7 +63,13 @@ Décidée le 19/11/2026 (voir [spec-v1.md](spec-v1.md) et [ADR 0003](adr/0003-ni
 6. Bâtiments du QG : Salle d'entraînement, Planque, Agence, Coffre-fort.
 7. Retirer l'achat de niveaux en Cash (interface et moteur) ; réécrire le simulateur et revérifier le rythme (Étage 50 en 1 à 2 jours).
 
-## Ensuite (étape 6 : sauvegarde)
+## Étape 6 : sauvegarde (faite)
+
+- `src/storage/saveFormat.ts` (format JSON, grands nombres en texte `{"$d": …}`, Base64), `migrations.ts` (version 0 → 1, versions futures refusées), `SaveProvider.ts` + `LocalProvider.ts` (localStorage), `saves.ts` (`loadGame`, `importSave`, `exportCode`, gains d'absence).
+- Sauvegarde automatique toutes les 10 s et à la fermeture ; fenêtre « Sauvegarde » (copier le code, télécharger / importer `syndicate-save.json`, recommencer avec double confirmation) ; fenêtre « Pendant ton absence ».
+- **Pour Firebase (phase 2)** : garder 10 s en local, mais n'écrire dans Firestore que toutes les 60 s **et seulement si la partie a changé**, plus à la fermeture (offre gratuite Spark : quota d'écritures par jour partagé par tous les joueurs, à revérifier).
+
+## Ancien plan de l'étape 6 (pour mémoire)
 
 1. `src/storage/SaveProvider.ts` (interface `load`, `save`, `exportData`, `importData`) et `LocalProvider.ts` (localStorage).
 2. Format de sauvegarde : `saveVersion: 1`, `lastSavedAt`, grands nombres en texte ; `migrations.ts` prêt pour les versions suivantes ; champ `prestigeLevel` prévu.

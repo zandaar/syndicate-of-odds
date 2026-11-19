@@ -6,12 +6,35 @@ import { HQPanel } from './components/HQPanel';
 import { RosterSidebar } from './components/RosterSidebar';
 import { TopBar } from './components/TopBar';
 import { formatNumber } from './engine/format';
-import { advanceGame, applyAction, newGame, type GameAction, type GameEvent, type GameState } from './engine/game';
+import { advanceGame, applyAction, newGame, type GameAction, type GameEvent, type GameState, type OfflineResult } from './engine/game';
+import { LOAD_ERROR_TEXT, OfflineWindow, SaveWindow } from './components/SaveWindows';
+import { browserStore, LocalProvider, readSaveNow } from './storage/LocalProvider';
+import { serializeGame } from './storage/saveFormat';
+import { importSave, loadGame, MIN_OFFLINE_SECONDS } from './storage/saves';
 import { ERROR_TEXT } from './ui/labels';
 
 /** Fréquence de rafraîchissement de l'écran (le moteur, lui, avance par ticks de 0,5 s). */
 const FRAME_MS = 100;
 const FLOATER_MS = 1200;
+/** Sauvegarde locale automatique (gratuite, sans limite). */
+const AUTOSAVE_MS = 10_000;
+
+const store = browserStore();
+const provider = store ? new LocalProvider(store) : null;
+
+function freshGame(): GameState {
+  return newGame(Math.floor(Math.random() * 2 ** 32), Date.now());
+}
+
+/** Au démarrage : reprend la sauvegarde du navigateur (avec les gains d'absence), sinon une nouvelle partie. */
+function startingGame(): { state: GameState; offline: OfflineResult | null } {
+  const saved = readSaveNow(store);
+  if (saved) {
+    const loaded = loadGame(saved, Date.now());
+    if (loaded.ok) return { state: loaded.state, offline: loaded.offline };
+  }
+  return { state: freshGame(), offline: null };
+}
 
 type Tab = 'hq' | 'casinos' | 'roster';
 
@@ -25,12 +48,49 @@ function floaterFor(event: GameEvent, scientific: boolean): Floater | null {
 }
 
 export default function App() {
-  const [game, setGame] = useState<GameState>(() => newGame(Math.floor(Math.random() * 2 ** 32), Date.now()));
+  const [start] = useState(startingGame);
+  const [game, setGame] = useState<GameState>(start.state);
+  const [offline, setOffline] = useState<OfflineResult | null>(start.offline);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('casinos');
   const gameRef = useRef(game);
+
+  // Sauvegarde automatique toutes les 10 s et à la fermeture de l'onglet.
+  useEffect(() => {
+    if (!provider) return;
+    const saveNow = () => {
+      const time = Date.now();
+      void provider.save(serializeGame(gameRef.current, time)).then(() => setLastSavedAt(time));
+    };
+    saveNow();
+    const timer = window.setInterval(saveNow, AUTOSAVE_MS);
+    window.addEventListener('beforeunload', saveNow);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('beforeunload', saveNow);
+    };
+  }, []);
+
+  const replaceGame = useCallback((state: GameState) => {
+    gameRef.current = state;
+    setGame(state);
+    if (provider) void provider.save(serializeGame(state, Date.now()));
+  }, []);
+
+  const importGame = useCallback(
+    (input: string): string | null => {
+      const loaded = importSave(input, Date.now());
+      if (!loaded.ok) return LOAD_ERROR_TEXT[loaded.error];
+      replaceGame(loaded.state);
+      if (loaded.offline && loaded.offline.seconds >= MIN_OFFLINE_SECONDS) setOffline(loaded.offline);
+      return null;
+    },
+    [replaceGame],
+  );
 
   // Boucle de jeu.
   useEffect(() => {
@@ -76,7 +136,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen pb-16 lg:pb-0">
-      <TopBar game={game} dispatch={dispatch} />
+      <TopBar game={game} dispatch={dispatch} onOpenSave={() => setSaveOpen(true)} />
 
       {/* PC : trois colonnes. */}
       <main className="hidden gap-3 p-3 lg:grid lg:grid-cols-[minmax(300px,1fr)_minmax(0,2fr)_minmax(220px,0.8fr)]">
@@ -110,6 +170,19 @@ export default function App() {
         <div className="fixed bottom-20 left-1/2 z-40 -translate-x-1/2 rounded border border-bordeaux bg-smoke px-4 py-2 text-sm text-rose-200 lg:bottom-6">
           {message}
         </div>
+      )}
+
+      {saveOpen && (
+        <SaveWindow
+          game={game}
+          lastSavedAt={lastSavedAt}
+          onImport={importGame}
+          onReset={() => replaceGame(freshGame())}
+          onClose={() => setSaveOpen(false)}
+        />
+      )}
+      {!saveOpen && offline && (
+        <OfflineWindow result={offline} scientific={game.settings.scientific} onClose={() => setOffline(null)} />
       )}
     </div>
   );
