@@ -114,7 +114,7 @@ const NO_BONUSES: GlobalBonuses = { cashMult: 1 };
 
 /** Multiplicateur des stats d'un Gadget à un rang donné. */
 export function gadgetStatMult(rank: number): number {
-  return BALANCE.gadgets.statGrowth ** (Math.max(1, rank) - 1);
+  return 1 + BALANCE.gadgets.statPerRank * (Math.max(1, rank) - 1);
 }
 
 /** Tous les effets portés par un Joueur : Classe, Maîtrise, Traits, Gadgets, Talents. */
@@ -317,7 +317,7 @@ export function masteryBonusPoints(level: number): number {
 
 /** Prix d'achat d'un Gadget. */
 export function gadgetBuyCost(price: number): Decimal {
-  return D(price * BALANCE.gadgets.cashPerPrice);
+  return D(Math.floor(BALANCE.gadgets.base * BALANCE.gadgets.priceGrowth ** price));
 }
 
 /** Prix pour faire passer un Gadget du rang `rank` au suivant. */

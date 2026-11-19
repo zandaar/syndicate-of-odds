@@ -23,11 +23,11 @@ export const BALANCE = {
   bossEvery: 5,
 
   /** Caisse d'un Étage : base × growth^(Étage − 1), × bossMult sur un Boss. */
-  vault: { base: 60, growth: 1.1, bossMult: 3 },
+  vault: { base: 60, growth: 1.17, bossMult: 3 },
   /** Pression par tick : base × growth^(Étage − 1), × bossMult sur un Boss. */
-  pressure: { base: 4, growth: 1.094, bossMult: 1.8 },
+  pressure: { base: 4, growth: 1.16, bossMult: 1.8 },
   /** Échelle de la Discrétion : grandit avec les Étages pour éviter l'immunité. */
-  stealthScale: { base: 50, growth: 1.094 },
+  stealthScale: { base: 50, growth: 1.16 },
 
   /** Prime de fin d'Étage, en part de la Caisse (0,3 = 30 %). */
   floorBonusRatio: 0.3,
@@ -43,7 +43,7 @@ export const BALANCE = {
    * À la Table, l'Équipe gagne autant de Réputation que de Cash raflé (partagée entre ses membres),
    * plus floorBonusRatio × la Caisse à chaque Étage validé.
    */
-  reputation: { base: 5000, growth: 1.2, floorBonusRatio: 0.3 },
+  reputation: { base: 5000, growth: 1.24, floorBonusRatio: 0.3 },
 
   /**
    * Maîtrise de Classe : il faut base × growth^niveau de Réputation (cumulée par tous les Joueurs
@@ -51,21 +51,24 @@ export const BALANCE = {
    */
   mastery: {
     base: 20000,
-    growth: 1.3,
+    growth: 1.5,
     /** Bonus de toutes les stats par niveau de Maîtrise (0,02 = +2 %). */
     statPerLevel: 0.02,
     /** Niveaux de Maîtrise qui offrent 1 point de Talent de départ aux nouvelles recrues. */
     bonusPointLevels: [10, 25, 50],
   },
 
-  /** Gadgets : achetés et améliorés avec du Cash. */
+  /**
+   * Gadgets : achetés et améliorés avec du Cash.
+   * Prix d'achat = base × priceGrowth^(`price` du catalogue) : les Gadgets prestigieux arrivent plus tard.
+   */
   gadgets: {
-    /** Prix d'achat = `price` du catalogue × cette valeur. */
-    cashPerPrice: 150,
+    base: 2000,
+    priceGrowth: 1.25,
     /** Chaque rang coûte ×upgradeGrowth de plus que le précédent. */
-    upgradeGrowth: 1.6,
-    /** Chaque rang multiplie les stats du Gadget par statGrowth. */
-    statGrowth: 1.15,
+    upgradeGrowth: 2.5,
+    /** Chaque rang au-delà du premier ajoute cette part des stats de base du Gadget (0,25 = +25 %). */
+    statPerRank: 0.25,
   },
 
   /** Arbres de Talents. */

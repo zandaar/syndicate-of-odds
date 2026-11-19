@@ -12,8 +12,8 @@ describe('getFloor — chaque Étage se déduit de son numéro', () => {
   it("l'Étage 5 est un Boss : Caisse ×3, Pression ×1,8 et 2 Jetons VIP", () => {
     const floor = getFloor(5);
     expect(floor.isBoss).toBe(true);
-    expect(floor.vault.toNumber()).toBeCloseTo(263.538, 6);
-    expect(floor.pressure.toNumber()).toBeCloseTo(10.313398, 5);
+    expect(floor.vault.toNumber()).toBeCloseTo(337.2997, 3);
+    expect(floor.pressure.toNumber()).toBeCloseTo(13.036603, 5);
     expect(floor.bossPressureExtra).toBeCloseTo(0.8, 10);
     expect(floor.vipReward).toBe(2);
   });

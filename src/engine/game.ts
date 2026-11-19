@@ -6,7 +6,8 @@ import { CLASSES } from '../data/classes';
 import { ITEMS_BY_ID } from '../data/items';
 import { D, type Decimal } from './bignum';
 import { buildingCost, buildingEffects, noBuildings, type BuildingEffects, type BuildingLevels } from './buildings';
-import { startTeamRun, tickTeam, type TeamEvent, type TeamRun } from './combat';
+import { startTeamRun, tickTeam, type Roll, type TeamEvent, type TeamRun } from './combat';
+import { computeOfflineGains } from './offline';
 import {
   buildTeamProfile,
   gadgetBuyCost,
@@ -16,7 +17,7 @@ import {
   masteryFromTotal,
   type TeamProfile,
 } from './economy';
-import { createRng, type Rng } from './random';
+import { createRng } from './random';
 import {
   dismissPlayer,
   generateCandidate,
@@ -390,8 +391,28 @@ export function distributeReputation(state: GameState, perTeam: [Decimal, Decima
   return { ...state, roster, mastery };
 }
 
+export interface OfflineResult {
+  state: GameState;
+  /** Durée comptée (plafond de la Planque appliqué), en secondes. */
+  seconds: number;
+  cash: Decimal;
+  reputation: Decimal;
+}
+
+/**
+ * Applique une absence de `elapsedSeconds` : chaque Équipe rejoue son Étage sans monter,
+ * le Cash s'ajoute et la Réputation est distribuée comme à la Table.
+ */
+export function applyOffline(state: GameState, elapsedSeconds: number): OfflineResult {
+  const teams = ([0, 1] as const).map((team) => ({ run: state.teams[team].run, profile: teamProfile(state, team) }));
+  const report = computeOfflineGains(teams, elapsedSeconds, effectsOf(state).offlineCapSeconds);
+  const perTeam: [Decimal, Decimal] = [report.reputationPerTeam[0] ?? D(0), report.reputationPerTeam[1] ?? D(0)];
+  const next = distributeReputation({ ...state, cash: state.cash.add(report.cash) }, perTeam);
+  return { state: next, seconds: report.seconds, cash: report.cash, reputation: perTeam[0].add(perTeam[1]) };
+}
+
 /** Fait avancer la partie de `elapsedMs` millisecondes (ticks de 0,5 s). */
-export function advanceGame(state: GameState, elapsedMs: number, now: number, rng: Rng): AdvanceResult {
+export function advanceGame(state: GameState, elapsedMs: number, now: number, rng: Roll): AdvanceResult {
   const tickMs = BALANCE.tickSeconds * 1000;
   const available = state.pendingMs + Math.max(0, elapsedMs);
   const ticks = Math.min(Math.floor(available / tickMs), MAX_TICKS_PER_ADVANCE);

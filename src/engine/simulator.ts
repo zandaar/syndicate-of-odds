@@ -1,27 +1,45 @@
 // Simulateur d'équilibrage : joue une partie « raisonnable » à toute vitesse,
-// avec les vraies formules du moteur, pour vérifier le rythme du jeu.
+// avec les VRAIES règles du jeu (mêmes actions que l'interface), pour vérifier le rythme.
 //
 // Le joueur simulé :
 //   - joue 4 sessions de 30 minutes par jour (à 0 h, 4 h, 8 h et 12 h), le reste du temps il est absent ;
-//   - pendant les sessions, complète ses Équipes dès qu'il a le Cash : l'Équipe 1 (Flambeur,
-//     Bluffeur, Cerveau) puis, dès l'Étage 10, l'Équipe 2 (Compteur de cartes, Pickpocket, Saboteur) ;
-//   - dépense ses points de Talent dans la première branche de chaque Classe, dans l'ordre ;
-//   - n'achète ni Gadget ni Bâtiment : le rythme mesuré est donc un peu prudent.
+//   - toutes les 10 secondes de session :
+//       1. complète ses Équipes avec le Candidat le moins cher (Équipe 2 dès l'Étage 10) ;
+//       2. dépense le reste de son Cash dans l'achat le moins cher : Gadget, rang de Gadget ou Bâtiment ;
+//       3. équipe les Gadgets libres sur les membres de ses Équipes ;
+//       4. dépense ses points de Talent dans la première branche de chaque Classe
+//          (Talent ultime compris dès la Maîtrise 5).
 import { BALANCE } from '../data/balance';
+import { BUILDING_IDS } from '../data/buildings';
+import { ITEMS } from '../data/items';
 import { BRANCHES, TALENTS } from '../data/talents';
 import { CLASSES } from '../data/classes';
 import { D, type Decimal } from './bignum';
-import { startTeamRun, tickTeam, type TeamRun } from './combat';
-import { buildTeamProfile, gainReputation, recruitCost, type TeamProfile } from './economy';
-import { computeOfflineGains } from './offline';
+import { buildingCost } from './buildings';
+import { gadgetBuyCost, gadgetUpgradeCost, recruitCost } from './economy';
+import {
+  advanceGame,
+  applyAction,
+  applyOffline,
+  isTeamUnlocked,
+  masteryLevel,
+  newGame,
+  wearerOf,
+  type GameAction,
+  type GameState,
+  type TeamIndex,
+} from './game';
 import { learnTalent, talentPoints } from './talents';
-import type { ClassId, Player } from './types';
+import type { Player } from './types';
 
 export interface SimulationOptions {
   /** Arrêt après ce nombre d'heures simulées. */
   maxHours: number;
   /** Arrêt dès que cet Étage est validé. */
   targetFloor: number;
+  seed?: number;
+  /** false : n'achète ni Gadget ni Bâtiment (pour mesurer leur effet). */
+  shopping?: boolean;
 }
 
 export interface SimulationResult {
@@ -29,32 +47,23 @@ export interface SimulationResult {
   hoursToFloor: Map<number, number>;
   highestCleared: number;
   hours: number;
+  state: GameState;
 }
 
-const TEAM_PLANS: ClassId[][] = [
-  ['gambler', 'bluffer', 'mastermind'],
-  ['counter', 'pickpocket', 'saboteur'],
-];
 const SESSION_STARTS_HOURS = [0, 4, 8, 12];
 const SESSION_HOURS = 0.5;
-/** Le joueur simulé recrute toutes les 10 secondes de session. */
-const SPEND_EVERY_TICKS = 20;
+const STEP_SECONDS = 10;
+const START = Date.UTC(2026, 5, 1);
 
-interface Team {
-  players: Player[];
-  run: TeamRun | null;
-  profile: TeamProfile;
-}
-
-function referencePlayer(classId: ClassId, id: number): Player {
+function starter(): Player {
   return {
-    id: `sim-${id}`,
-    name: CLASSES[classId].name,
+    id: 'sim-start',
+    name: 'Départ',
     gender: 'm',
-    classId,
+    classId: 'gambler',
     rarity: 'common',
     quality: 100,
-    baseStats: { ...CLASSES[classId].baseStats },
+    baseStats: { ...CLASSES.gambler.baseStats },
     traitIds: [],
     level: 1,
     reputation: D(0),
@@ -64,106 +73,121 @@ function referencePlayer(classId: ClassId, id: number): Player {
   };
 }
 
-/** Dépense les points dans la première branche de la Classe, puis dans son Talent sans limite. */
-function spendTalents(player: Player): Player {
-  const branch = BRANCHES.find((b) => b.classId === player.classId);
-  const order = TALENTS.filter((t) => t.classId === player.classId && t.branchId === branch?.id && t.index !== 5);
-  let current = player;
-  for (let guard = 0; guard < 1000 && talentPoints(current).available > 0; guard++) {
-    const next = order.map((t) => learnTalent(current, t.id, 0)).find((r) => r.refusal === null);
-    if (!next) break;
-    current = next.player;
+const act = (state: GameState, action: GameAction, now: number) => applyAction(state, action, now).state;
+
+/** Dépense les points dans la première branche de la Classe, puis son ultime et son Talent sans limite. */
+function spendTalents(state: GameState, now: number): GameState {
+  let current = state;
+  for (const player of state.roster) {
+    if (talentPoints(player).available <= 0) continue;
+    const branch = BRANCHES.find((b) => b.classId === player.classId);
+    const order = TALENTS.filter((t) => t.classId === player.classId && t.branchId === branch?.id);
+    const mastery = masteryLevel(current, player.classId);
+    let p = current.roster.find((r) => r.id === player.id)!;
+    for (let guard = 0; guard < 500 && talentPoints(p).available > 0; guard++) {
+      const talent = order.find((t) => learnTalent(p, t.id, mastery).refusal === null);
+      if (!talent) break;
+      current = act(current, { type: 'learnTalent', playerId: p.id, talentId: talent.id }, now);
+      p = current.roster.find((r) => r.id === player.id)!;
+    }
+  }
+  return current;
+}
+
+function openTeam(state: GameState): TeamIndex | null {
+  for (const team of [0, 1] as const) {
+    if (isTeamUnlocked(state, team) && state.teams[team].memberIds.length < BALANCE.teamSize) return team;
+  }
+  return null;
+}
+
+/** Complète les Équipes, puis achète le moins cher tant que le Cash le permet. */
+function spend(state: GameState, now: number, shopping: boolean): GameState {
+  let current = state;
+  for (let guard = 0; guard < 300; guard++) {
+    const team = openTeam(current);
+    let reserve: Decimal = D(0);
+    if (team !== null) {
+      const cheapest = [...current.office.candidates].sort((a, b) =>
+        recruitCost(a.rarity, current.highestCleared).cmp(recruitCost(b.rarity, current.highestCleared)),
+      )[0];
+      if (cheapest) {
+        const cost = recruitCost(cheapest.rarity, current.highestCleared);
+        if (current.cash.gte(cost)) {
+          current = act(current, { type: 'hire', candidateId: cheapest.id }, now);
+          current = act(current, { type: 'assign', playerId: cheapest.id, team }, now);
+          continue;
+        }
+        reserve = cost;
+      }
+    }
+
+    const options: { cost: Decimal; action: GameAction }[] = [
+      ...ITEMS.map((item) => {
+        const owned = current.items[item.id];
+        return owned
+          ? { cost: gadgetUpgradeCost(item.price, owned.rank), action: { type: 'upgradeItem', itemId: item.id } as GameAction }
+          : { cost: gadgetBuyCost(item.price), action: { type: 'buyItem', itemId: item.id } as GameAction };
+      }),
+      ...BUILDING_IDS.map((id) => ({
+        cost: buildingCost(id, current.buildings[id]),
+        action: { type: 'upgradeBuilding', buildingId: id } as GameAction,
+      })),
+    ];
+    const best = options.sort((a, b) => a.cost.cmp(b.cost))[0];
+    if (!shopping || !best || current.cash.sub(reserve).lt(best.cost)) break;
+    current = act(current, best.action, now);
+  }
+  return equipFreeGadgets(current, now);
+}
+
+/** Met chaque Gadget libre sur un membre d'Équipe dont l'emplacement est vide (sa Classe en priorité). */
+function equipFreeGadgets(state: GameState, now: number): GameState {
+  let current = state;
+  const members = () =>
+    [...current.teams[0].memberIds, ...current.teams[1].memberIds].map((id) => current.roster.find((p) => p.id === id)!);
+  for (const item of ITEMS) {
+    if (!current.items[item.id] || wearerOf(current, item.id)) continue;
+    const free = members().filter((p) => p.gear[item.slot] === null);
+    const target = free.find((p) => p.classId === item.classId) ?? (item.classId ? undefined : free[0]);
+    if (target) current = act(current, { type: 'equip', playerId: target.id, itemId: item.id }, now);
   }
   return current;
 }
 
 export function simulatePlaythrough(options: SimulationOptions): SimulationResult {
-  const bonuses = { cashMult: 1 };
   const hoursToFloor = new Map<number, number>();
-  let cash: Decimal = D(0);
-  let highestCleared = 0;
-  let nextId = 1;
+  let state = newGame(options.seed ?? 2026, START, starter());
   let hours = 0;
 
-  const teams: Team[] = TEAM_PLANS.map(() => ({ players: [], run: null, profile: buildTeamProfile([], bonuses) }));
-  // Le Flambeur offert au départ.
-  teams[0]!.players.push(referencePlayer('gambler', nextId++));
-
-  const refresh = (team: Team) => {
-    team.profile = buildTeamProfile(team.players, bonuses);
-    if (!team.run && team.players.length > 0) team.run = startTeamRun(1, team.profile);
-  };
-  teams.forEach(refresh);
-
-  /** Partage la Réputation de l'Équipe ; recalcule l'Équipe si quelqu'un a monté de niveau. */
-  const shareReputation = (team: Team, amount: Decimal) => {
-    if (team.players.length === 0 || amount.lte(0)) return;
-    const share = amount.div(team.players.length);
-    let levelled = false;
-    team.players = team.players.map((player) => {
-      const next = gainReputation(player, share);
-      if (next.level === player.level) return next;
-      levelled = true;
-      return spendTalents(next);
-    });
-    if (levelled) refresh(team);
-  };
-
-  const unlockedTeams = () => (highestCleared >= BALANCE.secondTeamFloor ? 2 : 1);
-
-  const recruit = () => {
-    for (let guard = 0; guard < 10; guard++) {
-      const open = teams
-        .slice(0, unlockedTeams())
-        .map((team, index) => ({ team, index }))
-        .find(({ team, index }) => team.players.length < TEAM_PLANS[index]!.length);
-      if (!open) return;
-      const cost = recruitCost('common', highestCleared);
-      if (cash.lt(cost)) return;
-      cash = cash.sub(cost);
-      const classId = TEAM_PLANS[open.index]![open.team.players.length]!;
-      open.team.players.push(referencePlayer(classId, nextId++));
-      refresh(open.team);
-    }
-  };
-
-  const done = () => highestCleared >= options.targetFloor || hours >= options.maxHours;
+  const done = () => state.highestCleared >= options.targetFloor || hours >= options.maxHours;
+  const now = () => START + hours * 3_600_000;
 
   const playOnline = (durationHours: number) => {
-    const ticks = Math.round((durationHours * 3600) / BALANCE.tickSeconds);
-    for (let tick = 0; tick < ticks && !done(); tick++) {
-      if (tick % SPEND_EVERY_TICKS === 0) recruit();
-      for (const team of teams) {
-        if (!team.run) continue;
-        const outcome = tickTeam(team.run, team.profile, { highestCleared }, 'expected');
-        team.run = outcome.run;
-        cash = cash.add(outcome.cash);
-        shareReputation(team, outcome.reputation);
-        if (outcome.clearedFloor !== null && outcome.clearedFloor > highestCleared) {
-          highestCleared = outcome.clearedFloor;
-          hoursToFloor.set(highestCleared, hours + (tick * BALANCE.tickSeconds) / 3600);
-        }
-      }
+    const steps = Math.round((durationHours * 3600) / STEP_SECONDS);
+    for (let step = 0; step < steps && !done(); step++) {
+      state = spendTalents(spend(state, now(), options.shopping ?? true), now());
+      const before = state.highestCleared;
+      state = advanceGame(state, STEP_SECONDS * 1000, now(), 'expected').state;
+      hours += STEP_SECONDS / 3600;
+      for (let floor = before + 1; floor <= state.highestCleared; floor++) hoursToFloor.set(floor, hours);
     }
-    hours += durationHours;
   };
 
   const playOffline = (durationHours: number) => {
-    const active = teams.filter((team): team is Team & { run: TeamRun } => team.run !== null);
-    const report = computeOfflineGains(active, durationHours * 3600);
-    cash = cash.add(report.cash);
-    active.forEach((team, i) => shareReputation(team, report.reputationPerTeam[i] ?? D(0)));
+    state = applyOffline(state, durationHours * 3600).state;
     hours += durationHours;
   };
 
   while (!done()) {
-    const dayStart = hours;
+    const dayStart = Math.floor(hours / 24) * 24;
     for (let i = 0; i < SESSION_STARTS_HOURS.length && !done(); i++) {
+      hours = Math.max(hours, dayStart + SESSION_STARTS_HOURS[i]!);
       playOnline(SESSION_HOURS);
       const nextStart = (SESSION_STARTS_HOURS[i + 1] ?? 24) + dayStart;
-      if (!done()) playOffline(nextStart - hours);
+      if (!done() && nextStart > hours) playOffline(nextStart - hours);
     }
   }
 
-  return { hoursToFloor, highestCleared, hours };
+  return { hoursToFloor, highestCleared: state.highestCleared, hours, state };
 }

@@ -108,7 +108,7 @@ describe('Talents ultimes à la Table', () => {
   it('Visage de cire : la Discrétion compte double contre les Boss', () => {
     const before = makePlayer('bluffer').baseStats.composure;
     const outcome = tick([makePlayer('bluffer', { talents: { 'bluffer.poker-face.visage-de-cire': 1 } })], 5, always(0.99));
-    expect(before - tableOf(outcome.run).cover.toNumber()).toBeCloseTo(6.174962, 5);
+    expect(before - tableOf(outcome.run).cover.toNumber()).toBeCloseTo(8.519545, 5);
   });
 
   it("Retour à l'envoyeur : 30 % des Soupçons subis sont raflés dans la Caisse", () => {
@@ -154,7 +154,7 @@ describe('Talents ultimes à la Table', () => {
   it("Coup du siècle : prime de fin d'Étage doublée sur les Boss", () => {
     const thief = makePlayer('pickpocket', { level: 60, talents: { 'pickpocket.mains-or.coup-du-siecle': 1 } });
     const outcome = tick([thief], 5, 'expected');
-    expect(outcome.cash.toNumber()).toBeCloseTo(469.09764, 4);
+    expect(outcome.cash.toNumber()).toBeCloseTo(600.39346, 4);
   });
 
   it('Fantôme de nuit : gains hors-ligne +100 %', () => {
@@ -190,6 +190,6 @@ describe('Talents ultimes à la Table', () => {
 
   it('Dynamite : les Boss démarrent avec 20 % de Caisse en moins', () => {
     const profile = team([makePlayer('saboteur', { talents: { 'saboteur.demolition.dynamite': 1 } })]);
-    expect(tableOf(startTeamRun(5, profile)).vault.toNumber()).toBeCloseTo(210.8304, 4);
+    expect(tableOf(startTeamRun(5, profile)).vault.toNumber()).toBeCloseTo(269.83976, 4);
   });
 });

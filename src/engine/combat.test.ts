@@ -89,7 +89,7 @@ describe('tickTeam — un tick à la Table', () => {
   });
 
   it("un Boss donne ses Jetons VIP au premier passage seulement", () => {
-    const strong = team([makePlayer('gambler', { level: 40 })]);
+    const strong = team([makePlayer('gambler', { level: 45 })]);
     expect(run(startTeamRun(5, strong), strong, 1, 4).vip).toBe(2);
     expect(run(startTeamRun(5, strong), strong, 1, 5).vip).toBe(0);
   });
@@ -97,7 +97,7 @@ describe('tickTeam — un tick à la Table', () => {
   it('le Saboteur réduit fortement la Pression d’un Boss', () => {
     const saboteur = team([makePlayer('saboteur')]);
     const outcome = tickTeam(startTeamRun(5, saboteur), saboteur, { highestCleared: 0 }, 'expected');
-    expect(100 - tableOf(outcome.run).cover.toNumber()).toBeCloseTo(6.2819, 3);
+    expect(100 - tableOf(outcome.run).cover.toNumber()).toBeCloseTo(8.2386, 3);
   });
 });
 

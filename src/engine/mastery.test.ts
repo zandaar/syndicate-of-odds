@@ -13,11 +13,11 @@ const fullPyromane = Object.fromEntries(
 );
 
 describe('Maîtrise de Classe', () => {
-  it('il faut 20 000 de Réputation de Classe pour la Maîtrise 1, puis 30 % de plus à chaque niveau', () => {
+  it('il faut 20 000 de Réputation de Classe pour la Maîtrise 1, puis 50 % de plus à chaque niveau', () => {
     expect(masteryToNext(0).toNumber()).toBe(20_000);
-    expect(masteryToNext(1).toNumber()).toBe(26_000);
+    expect(masteryToNext(1).toNumber()).toBe(30_000);
     expect(masteryFromTotal(D(19_999)).level).toBe(0);
-    expect(masteryFromTotal(D(46_000)).level).toBe(2);
+    expect(masteryFromTotal(D(50_000)).level).toBe(2);
   });
 
   it('toute la Réputation gagnée par un Joueur nourrit la Maîtrise de sa Classe', () => {

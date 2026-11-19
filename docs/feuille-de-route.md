@@ -16,8 +16,8 @@ Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
 | 2. Moteur + simulateur d'équilibrage (41 tests) | ✅ Fait |
 | 3. Noms générés + Traits + Bureau de recrutement (73 tests au total) | ✅ Fait |
 | 4. Interface jouable (QG, Casinos, Équipe) — 94 tests | ✅ Fait, jouable en local (`npm run dev`) |
-| 5. **Refonte de la progression** : Réputation, Talents, Maîtrise de Classe, Gadgets en Cash, Bâtiments, nouveau simulateur | 🟡 **En cours** : 5A fait (Réputation, niveaux, 126 Talents) ; 5B fait (Maîtrise, Gadgets en Cash, Bâtiments — 139 tests) ; ⏭️ 5C simulateur et équilibrage |
-| 6. Sauvegarde locale, hors-ligne au retour, export/import | À faire |
+| 5. **Refonte de la progression** : Réputation, Talents, Maîtrise de Classe, Gadgets en Cash, Bâtiments, nouveau simulateur | ✅ Fait (140 tests) : Réputation, 126 Talents, Maîtrise, Gadgets en Cash, Bâtiments, simulateur qui joue via les vraies actions, rythme réglé |
+| 6. Sauvegarde locale, hors-ligne au retour, export/import | ⏭️ **Prochaine étape** (`applyOffline` existe déjà) |
 | 7. Succès, Blanchiment et Réseau | À faire |
 | 8. Pixel art des Tables et finitions | À faire |
 | Phase 2 : Firebase (comptes + sauvegarde cloud) | Plus tard |
@@ -56,7 +56,9 @@ Décidée le 19/11/2026 (voir [spec-v1.md](spec-v1.md) et [ADR 0003](adr/0003-ni
 4. ✅ Maîtrise de Classe (`GameState.mastery`, `masteryFromTotal`) : toute Réputation nourrit sa Classe, +2 % de stats par niveau, Talents ultimes au niveau 5, points de départ aux niveaux 10, 25 et 50 ; panneau dans le QG.
 5. ✅ Gadgets en Cash (`buyItem`, `upgradeItem`, `equip`, `unequip`) : un exemplaire chacun, rangs à +60 % de coût et +15 % de stats ; Boutique dans le QG, équipement dans la fiche Joueur.
 6. ✅ Bâtiments (`src/data/buildings.ts`, `src/engine/buildings.ts`) : Salle d'entraînement, Planque, Agence, Coffre-fort.
-7. ⏭️ 5C : faire jouer au simulateur la Maîtrise, les Gadgets et les Bâtiments, puis régler les prix (`balance.ts`, `buildings.ts`, `items.ts`) pour garder l'Étage 50 en 1 à 2 jours.
+7. ✅ 5C : le simulateur joue avec les vraies actions de `game.ts` (recrues, Gadgets, Bâtiments, Talents, `applyOffline`) ; option `shopping: false` pour mesurer l'effet des achats.
+   Constat : les achats et le retour d'absence accéléraient énormément le jeu (Étage 50 en 30 min). Réglages retenus : Étages +17 % de Caisse et +16 % de Pression par Étage, Gadgets plus chers (base 2 000 $, ×2,5 par rang, stats +25 % par rang au lieu de ×1,15), Bâtiments ×20 et ×2,5 par niveau, Réputation ×1,24 par niveau, Maîtrise ×1,5 par niveau.
+   Rythme mesuré : Étage 20 en 27 min, 30 en 4 h, 50 en 24 h, 60 en 48 h.
 5. Gadgets achetés et améliorés en Cash (rangs à coût croissant) ; Boutique dans le QG.
 6. Bâtiments du QG : Salle d'entraînement, Planque, Agence, Coffre-fort.
 7. Retirer l'achat de niveaux en Cash (interface et moteur) ; réécrire le simulateur et revérifier le rythme (Étage 50 en 1 à 2 jours).
@@ -74,5 +76,5 @@ Décidée le 19/11/2026 (voir [spec-v1.md](spec-v1.md) et [ADR 0003](adr/0003-ni
 
 - Formule exacte de l'Influence au Blanchiment et prix des niveaux du Réseau.
 - Liste précise des Succès et de leurs bonus.
-- Le simulateur n'achète pas de Gadgets : à ajouter quand la Boutique existera, puis revérifier le rythme.
+- Le retour d'absence reste le gros moteur de progression (gros sauts à 4 h, 8 h…) : à surveiller quand on jouera vraiment ; une piste serait de réduire l'efficacité hors-ligne.
 - Courbe de Réputation et prix des Gadgets et Bâtiments : à régler avec le nouveau simulateur (étape 5).

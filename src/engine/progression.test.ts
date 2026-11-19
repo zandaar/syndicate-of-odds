@@ -8,9 +8,9 @@ import { makePlayer } from './testing';
 const NO_BONUS = { cashMult: 1 };
 
 describe('Réputation et niveaux', () => {
-  it('il faut 5 000 de Réputation pour le niveau 2, puis 20 % de plus à chaque niveau', () => {
+  it('il faut 5 000 de Réputation pour le niveau 2, puis 24 % de plus à chaque niveau', () => {
     expect(reputationToNext(1).toNumber()).toBe(5000);
-    expect(reputationToNext(2).toNumber()).toBe(6000);
+    expect(reputationToNext(2).toNumber()).toBe(6200);
   });
 
   it('un Joueur monte de niveau quand sa Réputation atteint le seuil, et garde le surplus', () => {
@@ -22,7 +22,7 @@ describe('Réputation et niveaux', () => {
   });
 
   it("beaucoup de Réputation d'un coup fait monter de plusieurs niveaux", () => {
-    expect(gainReputation(makePlayer('gambler'), D(5000 + 6000 + 7200)).level).toBe(4);
+    expect(gainReputation(makePlayer('gambler'), D(5000 + 6200 + 7688)).level).toBe(4);
   });
 
   it('chaque niveau au-delà du premier donne 1 point de Talent', () => {
