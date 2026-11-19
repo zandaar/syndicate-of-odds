@@ -1,0 +1,22 @@
+@import 'tailwindcss';
+
+/* Palette « Dark Casino » : noirs profonds, tapis émeraude et bordeaux, accents dorés. */
+@theme {
+  --color-night: #0b0a0f;
+  --color-smoke: #1a1820;
+  --color-felt: #0f5132;
+  --color-bordeaux: #6b1b2a;
+  --color-gold: #d4a64a;
+  --color-neon: #ff3fa4;
+}
+
+body {
+  background-color: var(--color-night);
+  color: #e8e2d4;
+}
+
+/* Le pixel art doit rester net, sans flou à l'agrandissement. */
+canvas,
+.pixelated {
+  image-rendering: pixelated;
+}
