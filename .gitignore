@@ -4,5 +4,8 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Réglages personnels de Claude Code (permissions de cette machine)
+.claude/settings.local.json
+
 # Document de conception d'origine : gardé en local, docs/spec-v1.md fait foi.
 *.pdf
