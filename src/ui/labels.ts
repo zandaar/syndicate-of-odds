@@ -42,4 +42,7 @@ export const ERROR_TEXT: Record<GameError, string> = {
   'already-owned': 'Tu possèdes déjà ce Gadget : améliore-le plutôt.',
   'not-owned': "Achète d'abord ce Gadget à la Boutique.",
   'unknown-building': 'Ce Bâtiment est inconnu.',
+  'too-early': "Le Blanchiment se débloque à l'Étage 50.",
+  'not-enough-influence': "Pas assez d'Influence.",
+  'max-level': 'Déjà au niveau maximal.',
 };

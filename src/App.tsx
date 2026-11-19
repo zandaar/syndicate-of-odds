@@ -8,6 +8,7 @@ import { TopBar } from './components/TopBar';
 import { formatNumber } from './engine/format';
 import { advanceGame, applyAction, newGame, type GameAction, type GameEvent, type GameState, type OfflineResult } from './engine/game';
 import { LOAD_ERROR_TEXT, OfflineWindow, SaveWindow } from './components/SaveWindows';
+import type { AchievementUnlock } from './engine/achievements';
 import { browserStore, LocalProvider, readSaveNow } from './storage/LocalProvider';
 import { serializeGame } from './storage/saveFormat';
 import { importSave, loadGame, MIN_OFFLINE_SECONDS } from './storage/saves';
@@ -56,6 +57,14 @@ export default function App() {
   const [now, setNow] = useState(() => Date.now());
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const showUnlocks = useCallback((unlocked: AchievementUnlock[]) => {
+    const last = unlocked[unlocked.length - 1];
+    if (!last) return;
+    const more = unlocked.length > 1 ? ` (et ${unlocked.length - 1} autre${unlocked.length > 2 ? 's' : ''})` : '';
+    setNotice(`Succès : ${last.label} — +${last.vip} Jetons VIP${more}`);
+    window.setTimeout(() => setNotice(null), 4000);
+  }, []);
   const [tab, setTab] = useState<Tab>('casinos');
   const gameRef = useRef(game);
 
@@ -102,6 +111,7 @@ export default function App() {
       gameRef.current = result.state;
       setGame(result.state);
       setNow(current);
+      showUnlocks(result.unlocked);
       if (result.events.length > 0) {
         const fresh = result.events
           .slice(-4)
@@ -112,7 +122,7 @@ export default function App() {
       }
     }, FRAME_MS);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [showUnlocks]);
 
   const dispatch = useCallback((action: GameAction) => {
     const result = applyAction(gameRef.current, action, Date.now());
@@ -122,7 +132,8 @@ export default function App() {
       setMessage(ERROR_TEXT[result.error]);
       window.setTimeout(() => setMessage(null), 2500);
     }
-  }, []);
+    showUnlocks(result.unlocked);
+  }, [showUnlocks]);
 
   const lanes = (
     <div className="flex flex-col gap-3">
@@ -169,6 +180,12 @@ export default function App() {
       {message && (
         <div className="fixed bottom-20 left-1/2 z-40 -translate-x-1/2 rounded border border-bordeaux bg-smoke px-4 py-2 text-sm text-rose-200 lg:bottom-6">
           {message}
+        </div>
+      )}
+
+      {notice && (
+        <div className="fixed left-1/2 top-14 z-40 -translate-x-1/2 rounded border border-gold bg-smoke px-4 py-2 text-sm text-gold shadow-lg">
+          {notice}
         </div>
       )}
 

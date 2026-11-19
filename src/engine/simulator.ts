@@ -30,6 +30,8 @@ import {
   type TeamIndex,
 } from './game';
 import { learnTalent, talentPoints } from './talents';
+import { NETWORK_IDS } from '../data/network';
+import { networkCost } from './network';
 import type { Player } from './types';
 
 export interface SimulationOptions {
@@ -40,14 +42,38 @@ export interface SimulationOptions {
   seed?: number;
   /** false : n'achète ni Gadget ni Bâtiment (pour mesurer leur effet). */
   shopping?: boolean;
+  /** Nombre de parties à jouer : on Blanchit en atteignant `targetFloor`, sauf à la dernière. */
+  runs?: number;
+}
+
+export interface RunResult {
+  /** Heure (depuis le tout début) où la partie a commencé. */
+  startHours: number;
+  /** Heures écoulées depuis le début de CETTE partie quand chaque Étage a été validé. */
+  hoursToFloor: Map<number, number>;
 }
 
 export interface SimulationResult {
-  /** Heures écoulées quand chaque Étage a été validé pour la première fois. */
+  /** Heures écoulées quand chaque Étage a été validé pour la première fois (première partie). */
   hoursToFloor: Map<number, number>;
+  runs: RunResult[];
   highestCleared: number;
   hours: number;
   state: GameState;
+}
+
+/** Dépense l'Influence dans le bonus de Réseau le moins cher, tant que possible. */
+function spendInfluence(state: GameState, now: number): GameState {
+  let current = state;
+  for (let guard = 0; guard < 100; guard++) {
+    const options = NETWORK_IDS.map((id) => ({ id, cost: networkCost(id, current.network[id]) })).filter(
+      (o): o is { id: (typeof NETWORK_IDS)[number]; cost: number } => o.cost !== null && o.cost <= current.influence,
+    );
+    const cheapest = options.sort((a, b) => a.cost - b.cost)[0];
+    if (!cheapest) break;
+    current = act(current, { type: 'buyNetwork', networkId: cheapest.id }, now);
+  }
+  return current;
 }
 
 const SESSION_STARTS_HOURS = [0, 4, 8, 12];
@@ -156,12 +182,22 @@ function equipFreeGadgets(state: GameState, now: number): GameState {
 }
 
 export function simulatePlaythrough(options: SimulationOptions): SimulationResult {
-  const hoursToFloor = new Map<number, number>();
   let state = newGame(options.seed ?? 2026, START, starter());
   let hours = 0;
+  const totalRuns = options.runs ?? 1;
+  const runs: RunResult[] = [{ startHours: 0, hoursToFloor: new Map() }];
+  const currentRun = () => runs[runs.length - 1]!;
 
-  const done = () => state.highestCleared >= options.targetFloor || hours >= options.maxHours;
+  const done = () =>
+    (runs.length === totalRuns && state.highestCleared >= options.targetFloor) || hours >= options.maxHours;
   const now = () => START + hours * 3_600_000;
+
+  /** Blanchit dès que l'objectif est atteint, s'il reste des parties à jouer. */
+  const maybeLaunder = () => {
+    if (runs.length >= totalRuns || state.highestCleared < options.targetFloor) return;
+    state = spendInfluence(act(state, { type: 'launder' }, now()), now());
+    runs.push({ startHours: hours, hoursToFloor: new Map() });
+  };
 
   const playOnline = (durationHours: number) => {
     const steps = Math.round((durationHours * 3600) / STEP_SECONDS);
@@ -170,7 +206,9 @@ export function simulatePlaythrough(options: SimulationOptions): SimulationResul
       const before = state.highestCleared;
       state = advanceGame(state, STEP_SECONDS * 1000, now(), 'expected').state;
       hours += STEP_SECONDS / 3600;
-      for (let floor = before + 1; floor <= state.highestCleared; floor++) hoursToFloor.set(floor, hours);
+      const run = currentRun();
+      for (let floor = before + 1; floor <= state.highestCleared; floor++) run.hoursToFloor.set(floor, hours - run.startHours);
+      maybeLaunder();
     }
   };
 
@@ -189,5 +227,5 @@ export function simulatePlaythrough(options: SimulationOptions): SimulationResul
     }
   }
 
-  return { hoursToFloor, highestCleared: state.highestCleared, hours, state };
+  return { hoursToFloor: runs[0]!.hoursToFloor, runs, highestCleared: state.highestCleared, hours, state };
 }

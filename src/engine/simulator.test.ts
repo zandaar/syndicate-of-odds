@@ -24,3 +24,13 @@ describe('simulatePlaythrough — le rythme d’une première partie (4 sessions
     expect(hoursTo(30), `Étage 30 atteint en ${hoursTo(30).toFixed(1)} h`).toBeLessThanOrEqual(12);
   });
 });
+
+describe('simulatePlaythrough — le Blanchiment rend la partie suivante plus rapide', () => {
+  it("après un Blanchiment à l'Étage 50 et l'achat de Réseau, la 2e partie y revient au moins deux fois plus vite", () => {
+    const result = simulatePlaythrough({ maxHours: 240, targetFloor: 50, runs: 2 });
+    const [first, second] = result.runs;
+    const t1 = first?.hoursToFloor.get(50) ?? Number.POSITIVE_INFINITY;
+    const t2 = second?.hoursToFloor.get(50) ?? Number.POSITIVE_INFINITY;
+    expect(t2, `1re partie : ${t1.toFixed(1)} h ; 2e partie : ${t2.toFixed(1)} h`).toBeLessThanOrEqual(t1 / 2);
+  });
+});

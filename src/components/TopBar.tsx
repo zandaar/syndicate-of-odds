@@ -20,6 +20,11 @@ export function TopBar({
       <span className="tabular-nums text-violet-300" title="Jetons VIP">
         {game.vip} Jetons VIP
       </span>
+      {(game.influence > 0 || game.lifetime.launderings > 0) && (
+        <span className="tabular-nums text-gold" title="Influence (gagnée en Blanchissant)">
+          {game.influence} Influence
+        </span>
+      )}
       <span className="text-sm text-stone-400">Record : Étage {game.highestCleared}</span>
       <Button onClick={() => dispatch({ type: 'toggleScientific' })} title="Afficher les grands nombres en notation scientifique">
         {game.settings.scientific ? '1,5e3' : '1,5K'}

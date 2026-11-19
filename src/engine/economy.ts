@@ -260,7 +260,7 @@ export function buildTeamProfile(players: Player[], bonuses: GlobalBonuses): Tea
     floorBonusMult: 1 + sumOf(all, 'floorBonus', (m) => m.value) + (bonuses.floorBonus ?? 0),
     bossFloorBonusMult: 1 + sumOf(all, 'bossFloorBonus', (m) => m.value),
     offlineMult: 1 + sumOf(all, 'offline', (m) => m.value),
-    reputationMult: 1 + sumOf(all, 'reputation', (m) => m.value),
+    reputationMult: (1 + sumOf(all, 'reputation', (m) => m.value)) * (bonuses.reputationMult ?? 1),
     jackpotHeal: sumOf(all, 'jackpotHeal', (m) => m.value),
     earlyShields: only(all, 'earlyShield').map(({ ticks, value }) => ({ ticks, value: Math.min(1, value) })),
     reflect: sumOf(all, 'reflect', (m) => m.value),

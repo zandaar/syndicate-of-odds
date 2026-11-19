@@ -7,7 +7,8 @@
 import { Decimal } from '../engine/bignum';
 import type { GameState } from '../engine/game';
 
-export const CURRENT_SAVE_VERSION = 1;
+/** Version 2 : Influence, Réseau, Succès et compteurs à vie (étape 7). */
+export const CURRENT_SAVE_VERSION = 2;
 
 export interface SaveData {
   saveVersion: number;
@@ -22,7 +23,7 @@ const DECIMAL_KEY = '$d';
 
 /** Partie → texte JSON. */
 export function serializeGame(state: GameState, now: number): string {
-  const data: SaveData = { saveVersion: CURRENT_SAVE_VERSION, lastSavedAt: now, prestigeLevel: 0, game: state };
+  const data: SaveData = { saveVersion: CURRENT_SAVE_VERSION, lastSavedAt: now, prestigeLevel: state.lifetime?.launderings ?? 0, game: state };
   return JSON.stringify(data, function replacer(this: Record<string, unknown>, key: string, value: unknown) {
     // `this[key]` est la valeur d'origine, avant que Decimal ne soit transformé par son propre toJSON.
     const original = this[key];

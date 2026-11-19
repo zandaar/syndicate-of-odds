@@ -18,8 +18,8 @@ Dernière mise à jour : 19/11/2026. Projet en pause après l'étape 2.
 | 4. Interface jouable (QG, Casinos, Équipe) — 94 tests | ✅ Fait, jouable en local (`npm run dev`) |
 | 5. **Refonte de la progression** : Réputation, Talents, Maîtrise de Classe, Gadgets en Cash, Bâtiments, nouveau simulateur | ✅ Fait (140 tests) : Réputation, 126 Talents, Maîtrise, Gadgets en Cash, Bâtiments, simulateur qui joue via les vraies actions, rythme réglé |
 | 6. Sauvegarde locale, hors-ligne au retour, export/import | ✅ Fait (149 tests) |
-| 7. Succès, Blanchiment et Réseau | ⏭️ **Prochaine étape** |
-| 8. Pixel art des Tables et finitions | À faire |
+| 7. Succès, Blanchiment et Réseau | ✅ Fait (162 tests) |
+| 8. Pixel art des Tables et finitions | ⏭️ **Prochaine étape** |
 | Phase 2 : Firebase (comptes + sauvegarde cloud) | Plus tard |
 
 ## Ce qui existe dans le code
@@ -63,6 +63,14 @@ Décidée le 19/11/2026 (voir [spec-v1.md](spec-v1.md) et [ADR 0003](adr/0003-ni
 6. Bâtiments du QG : Salle d'entraînement, Planque, Agence, Coffre-fort.
 7. Retirer l'achat de niveaux en Cash (interface et moteur) ; réécrire le simulateur et revérifier le rythme (Étage 50 en 1 à 2 jours).
 
+## Étape 7 : Succès, Blanchiment, Réseau (faite)
+
+- Blanchiment (`launder`, dès l'Étage 50) : Influence = (Étage ÷ 10)² ; remet à zéro Joueurs, Cash, Jetons VIP, Gadgets, Bâtiments, Étages ; garde Influence, Réseau, Succès, Maîtrise, réglages et compteurs à vie (`GameState.lifetime`).
+- Réseau (`src/data/network.ts`, `src/engine/network.ts`) : Blanchisseurs, Mentors, Indics, Contacts (départ Étage 10/25/50), Nuits blanches.
+- Succès (`src/data/achievements.ts`, `src/engine/achievements.ts`) : 7 familles à paliers, Jetons VIP + 1 % de Cash par palier ; évalués après chaque action et chaque avancée du temps.
+- Sauvegarde en version 2 (migration 1 → 2 dans `migrations.ts`).
+- Simulateur à plusieurs parties (`runs`) : 1re partie Étage 50 en 24 h, 2e en 8 h, 3e en 16 h (le joueur simulé Blanchit dès l'Étage 50, donc peu d'Influence : Blanchir plus tard rapporterait plus).
+
 ## Étape 6 : sauvegarde (faite)
 
 - `src/storage/saveFormat.ts` (format JSON, grands nombres en texte `{"$d": …}`, Base64), `migrations.ts` (version 0 → 1, versions futures refusées), `SaveProvider.ts` + `LocalProvider.ts` (localStorage), `saves.ts` (`loadGame`, `importSave`, `exportCode`, gains d'absence).
@@ -80,7 +88,6 @@ Décidée le 19/11/2026 (voir [spec-v1.md](spec-v1.md) et [ADR 0003](adr/0003-ni
 
 ## Points ouverts à trancher plus tard
 
-- Formule exacte de l'Influence au Blanchiment et prix des niveaux du Réseau.
-- Liste précise des Succès et de leurs bonus.
+- 3e partie du simulateur plus lente que la 2e : à surveiller (stratégie de Blanchiment du joueur simulé, prix du Réseau).
 - Le retour d'absence reste le gros moteur de progression (gros sauts à 4 h, 8 h…) : à surveiller quand on jouera vraiment ; une piste serait de réduire l'efficacité hors-ligne.
 - Courbe de Réputation et prix des Gadgets et Bâtiments : à régler avec le nouveau simulateur (étape 5).

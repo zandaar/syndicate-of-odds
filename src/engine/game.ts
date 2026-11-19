@@ -30,6 +30,25 @@ import {
 } from './recruitment';
 import { learnTalent, resetTalents, type TalentRefusal } from './talents';
 import type { ClassId, GearSlot, GlobalBonuses, Player } from './types';
+import { NETWORK, type NetworkId } from '../data/network';
+import { achievementCount, evaluateAchievements, type AchievementUnlock } from './achievements';
+import { influenceFor, networkCost, networkEffects, noNetwork, type NetworkLevels } from './network';
+import type { AchievementFamilyId } from '../data/achievements';
+
+/** Compteurs sur toute la vie du Syndicat : ils survivent au Blanchiment (pour les Succès). */
+export interface Lifetime {
+  jackpots: number;
+  cash: Decimal;
+  bestFloor: number;
+  launderings: number;
+  recruitedRare: boolean;
+  recruitedEpic: boolean;
+  /** Noms des Légendaires déjà recrutés. */
+  legendaries: string[];
+}
+
+/** Étage à atteindre pour pouvoir Blanchir. */
+export const LAUNDER_FLOOR = 50;
 
 export interface TeamState {
   memberIds: string[];
@@ -50,10 +69,15 @@ export interface GameState {
   /** Gadgets possédés (un exemplaire chacun) et leur rang. */
   items: Record<string, { rank: number }>;
   buildings: BuildingLevels;
+  /** Influence disponible (gagnée en Blanchissant, survit au Blanchiment). */
+  influence: number;
+  network: NetworkLevels;
+  /** Paliers de Succès débloqués, par famille. */
+  achievements: Partial<Record<AchievementFamilyId, number>>;
+  lifetime: Lifetime;
   /** Millisecondes pas encore transformées en tick. */
   pendingMs: number;
   settings: { scientific: boolean };
-  stats: { jackpots: number };
 }
 
 export type TeamIndex = 0 | 1;
@@ -71,6 +95,8 @@ export type GameAction =
   | { type: 'equip'; playerId: string; itemId: string }
   | { type: 'unequip'; playerId: string; slot: GearSlot }
   | { type: 'upgradeBuilding'; buildingId: BuildingId }
+  | { type: 'buyNetwork'; networkId: NetworkId }
+  | { type: 'launder' }
   | { type: 'toggleScientific' };
 
 export type GameError =
@@ -86,11 +112,16 @@ export type GameError =
   | 'already-owned'
   | 'not-owned'
   | 'unknown-building'
+  | 'too-early'
+  | 'not-enough-influence'
+  | 'max-level'
   | TalentRefusal;
 
 export interface ActionResult {
   state: GameState;
   error: GameError | null;
+  /** Succès débloqués par cette action. */
+  unlocked: AchievementUnlock[];
 }
 
 /** Un événement de combat, avec l'Équipe concernée (pour l'affichage). */
@@ -100,6 +131,7 @@ export interface AdvanceResult {
   state: GameState;
   ticks: number;
   events: GameEvent[];
+  unlocked: AchievementUnlock[];
 }
 
 /** Au-delà, l'absence est traitée par les gains hors-ligne (étape 6). */
@@ -121,10 +153,15 @@ export function effectsOf(state: GameState): BuildingEffects {
   return buildingEffects(state.buildings);
 }
 
+/** Chaque palier de Succès donne +1 % de Cash. */
+export const CASH_PER_ACHIEVEMENT = 0.01;
+
 /** Tous les bonus du Syndicat qui touchent les Équipes. */
 export function bonusesOf(state: GameState): GlobalBonuses {
+  const network = networkEffects(state.network);
   return {
-    cashMult: 1,
+    cashMult: network.cashMult * (1 + CASH_PER_ACHIEVEMENT * achievementCount(state)),
+    reputationMult: network.reputationMult,
     floorBonus: effectsOf(state).floorBonus,
     masteryLevels: Object.fromEntries(CLASS_IDS.map((id) => [id, masteryLevel(state, id)])),
     itemRanks: Object.fromEntries(Object.entries(state.items).map(([id, item]) => [id, item.rank])),
@@ -133,7 +170,24 @@ export function bonusesOf(state: GameState): GlobalBonuses {
 
 function officeContext(state: GameState, now: number): OfficeContext {
   const effects = effectsOf(state);
-  return { now, roster: state.roster, rarityWeights: effects.rarityWeights, candidates: effects.candidates };
+  const bonus = networkEffects(state.network).rarityBonus;
+  const weights = effects.rarityWeights;
+  return {
+    now,
+    roster: state.roster,
+    rarityWeights: {
+      common: weights.common,
+      rare: weights.rare + bonus.rare,
+      epic: weights.epic + bonus.epic,
+      legendary: weights.legendary + bonus.legendary,
+    },
+    candidates: effects.candidates,
+  };
+}
+
+/** Durée maximale comptée pendant une absence (Planque et Nuits blanches comprises). */
+export function offlineCapOf(state: GameState): number {
+  return effectsOf(state).offlineCapSeconds + networkEffects(state.network).offlineExtraSeconds;
 }
 
 function withPlayer(state: GameState, player: Player): GameState {
@@ -195,8 +249,22 @@ function withTeam(state: GameState, team: TeamIndex, value: TeamState): GameStat
   return { ...state, teams };
 }
 
-/** Nouvelle partie : un Flambeur Commun offert, déjà dans l'Équipe 1. */
-export function newGame(seed: number, now: number, starter?: Player): GameState {
+/** Ce qui survit au Blanchiment. */
+type Persistent = Pick<GameState, 'mastery' | 'influence' | 'network' | 'achievements' | 'lifetime' | 'settings'>;
+
+function freshPersistent(): Persistent {
+  return {
+    mastery: noMastery(),
+    influence: 0,
+    network: noNetwork(),
+    achievements: {},
+    lifetime: { jackpots: 0, cash: D(0), bestFloor: 0, launderings: 0, recruitedRare: false, recruitedEpic: false, legendaries: [] },
+    settings: { scientific: false },
+  };
+}
+
+/** Démarre une partie (nouvelle ou après Blanchiment) : un Flambeur Commun offert, déjà dans l'Équipe 1. */
+function startRun(persistent: Persistent, seed: number, now: number, starter?: Player): GameState {
   const rng = createRng(seed);
   const first =
     starter ??
@@ -206,33 +274,47 @@ export function newGame(seed: number, now: number, starter?: Player): GameState 
       classId: 'gambler',
       rarityWeights: { common: 1, rare: 0, epic: 0, legendary: 0 },
     });
+  const startFloor = networkEffects(persistent.network).startFloor;
   const emptyProfile = buildTeamProfile([], { cashMult: 1 });
   const base: GameState = {
+    ...persistent,
     cash: D(0),
     vip: 0,
     roster: [first],
     teams: [
-      { memberIds: [first.id], run: startTeamRun(1, emptyProfile) },
-      { memberIds: [], run: startTeamRun(1, emptyProfile) },
+      { memberIds: [first.id], run: startTeamRun(startFloor, emptyProfile) },
+      { memberIds: [], run: startTeamRun(startFloor, emptyProfile) },
     ],
     office: openOffice(Math.floor(rng() * 2 ** 32), { now, roster: [first] }),
-    highestCleared: 0,
-    mastery: noMastery(),
+    // Avec les Contacts, les Étages sautés comptent comme validés.
+    highestCleared: startFloor - 1,
     items: {},
     buildings: noBuildings(),
     pendingMs: 0,
-    settings: { scientific: false },
-    stats: { jackpots: 0 },
   };
   return restartTeam(base, 0);
 }
 
-function fail(state: GameState, error: GameError): ActionResult {
+/** Nouvelle partie. */
+export function newGame(seed: number, now: number, starter?: Player): GameState {
+  return startRun(freshPersistent(), seed, now, starter);
+}
+
+type RuleResult = { state: GameState; error: GameError | null };
+
+function fail(state: GameState, error: GameError): RuleResult {
   return { state, error };
 }
 
 /** Applique une action du joueur. En cas de refus, l'état est inchangé et `error` dit pourquoi. */
 export function applyAction(state: GameState, action: GameAction, now: number): ActionResult {
+  const result = applyRules(state, action, now);
+  if (result.error) return { ...result, unlocked: [] };
+  const evaluated = evaluateAchievements(result.state);
+  return { state: evaluated.state, error: null, unlocked: evaluated.unlocked };
+}
+
+function applyRules(state: GameState, action: GameAction, now: number): RuleResult {
   switch (action.type) {
     case 'hire': {
       const result = hireCandidate(
@@ -244,7 +326,15 @@ export function applyAction(state: GameState, action: GameAction, now: number): 
       const roster = result.roster.map((p) =>
         p.id === action.candidateId ? { ...p, bonusTalentPoints: masteryBonusPoints(masteryLevel(state, p.classId)) } : p,
       );
-      return { state: { ...state, office: result.office, roster, cash: result.cash }, error: null };
+      const hired = roster.find((p) => p.id === action.candidateId)!;
+      const life = state.lifetime;
+      const lifetime: Lifetime = {
+        ...life,
+        recruitedRare: life.recruitedRare || hired.rarity !== 'common',
+        recruitedEpic: life.recruitedEpic || hired.rarity === 'epic' || hired.rarity === 'legendary',
+        legendaries: hired.rarity === 'legendary' && !life.legendaries.includes(hired.name) ? [...life.legendaries, hired.name] : life.legendaries,
+      };
+      return { state: { ...state, office: result.office, roster, cash: result.cash, lifetime }, error: null };
     }
 
     case 'refreshOffice': {
@@ -362,6 +452,36 @@ export function applyAction(state: GameState, action: GameAction, now: number): 
       };
     }
 
+    case 'buyNetwork': {
+      if (!NETWORK[action.networkId]) return fail(state, 'unknown-building');
+      const level = state.network[action.networkId];
+      const cost = networkCost(action.networkId, level);
+      if (cost === null) return fail(state, 'max-level');
+      if (state.influence < cost) return fail(state, 'not-enough-influence');
+      return {
+        state: { ...state, influence: state.influence - cost, network: { ...state.network, [action.networkId]: level + 1 } },
+        error: null,
+      };
+    }
+
+    case 'launder': {
+      if (state.highestCleared < LAUNDER_FLOOR) return fail(state, 'too-early');
+      const lifetime: Lifetime = {
+        ...state.lifetime,
+        launderings: state.lifetime.launderings + 1,
+        bestFloor: Math.max(state.lifetime.bestFloor, state.highestCleared),
+      };
+      const persistent: Persistent = {
+        mastery: state.mastery,
+        influence: state.influence + influenceFor(state.highestCleared),
+        network: state.network,
+        achievements: state.achievements,
+        lifetime,
+        settings: state.settings,
+      };
+      return { state: startRun(persistent, state.office.seed, now), error: null };
+    }
+
     case 'toggleScientific':
       return { state: { ...state, settings: { ...state.settings, scientific: !state.settings.scientific } }, error: null };
   }
@@ -405,10 +525,11 @@ export interface OfflineResult {
  */
 export function applyOffline(state: GameState, elapsedSeconds: number): OfflineResult {
   const teams = ([0, 1] as const).map((team) => ({ run: state.teams[team].run, profile: teamProfile(state, team) }));
-  const report = computeOfflineGains(teams, elapsedSeconds, effectsOf(state).offlineCapSeconds);
+  const report = computeOfflineGains(teams, elapsedSeconds, offlineCapOf(state));
   const perTeam: [Decimal, Decimal] = [report.reputationPerTeam[0] ?? D(0), report.reputationPerTeam[1] ?? D(0)];
-  const next = distributeReputation({ ...state, cash: state.cash.add(report.cash) }, perTeam);
-  return { state: next, seconds: report.seconds, cash: report.cash, reputation: perTeam[0].add(perTeam[1]) };
+  const lifetime = { ...state.lifetime, cash: state.lifetime.cash.add(report.cash) };
+  const next = distributeReputation({ ...state, cash: state.cash.add(report.cash), lifetime }, perTeam);
+  return { state: evaluateAchievements(next).state, seconds: report.seconds, cash: report.cash, reputation: perTeam[0].add(perTeam[1]) };
 }
 
 /** Fait avancer la partie de `elapsedMs` millisecondes (ticks de 0,5 s). */
@@ -423,7 +544,7 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
   let cash = state.cash;
   let vip = state.vip;
   let highestCleared = state.highestCleared;
-  let jackpots = state.stats.jackpots;
+  let jackpots = state.lifetime.jackpots;
   const events: GameEvent[] = [];
   const teamReputation: [Decimal, Decimal] = [D(0), D(0)];
 
@@ -444,6 +565,12 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
   }
 
   const withReputation = distributeReputation(state, teamReputation);
+  const lifetime: Lifetime = {
+    ...state.lifetime,
+    jackpots,
+    cash: state.lifetime.cash.add(cash.sub(state.cash)),
+    bestFloor: Math.max(state.lifetime.bestFloor, highestCleared),
+  };
   const next: GameState = {
     ...withReputation,
     cash,
@@ -454,9 +581,10 @@ export function advanceGame(state: GameState, elapsedMs: number, now: number, rn
       { ...state.teams[0], run: runs[0] },
       { ...state.teams[1], run: runs[1] },
     ],
-    stats: { ...state.stats, jackpots },
+    lifetime,
     office: refreshIfDue(state.office, officeContext(state, now)),
   };
+  const evaluated = evaluateAchievements(next);
   // On ne garde que les derniers événements : l'interface n'en affiche que quelques-uns.
-  return { state: next, ticks, events: events.slice(-50) };
+  return { state: evaluated.state, ticks, events: events.slice(-50), unlocked: evaluated.unlocked };
 }

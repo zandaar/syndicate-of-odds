@@ -116,6 +116,8 @@ export interface Player {
 export interface GlobalBonuses {
   /** Multiplicateur de tout le Cash gagné (1 = normal). */
   cashMult: number;
+  /** Multiplicateur de toute la Réputation gagnée (Réseau). */
+  reputationMult?: number;
   /** Bonus de prime de fin d'Étage pour toutes les Équipes (0,1 = +10 %). */
   floorBonus?: number;
   /** Niveau de Maîtrise de chaque Classe. */

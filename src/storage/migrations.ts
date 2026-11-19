@@ -6,6 +6,7 @@
 //   3. ajoute un test dans save.test.ts avec une vraie sauvegarde de l'ancienne version.
 import { BUILDING_IDS } from '../data/buildings';
 import { CLASSES } from '../data/classes';
+import { NETWORK_IDS } from '../data/network';
 import { D } from '../engine/bignum';
 import type { GameState } from '../engine/game';
 import { CURRENT_SAVE_VERSION, type SaveData } from './saveFormat';
@@ -31,6 +32,27 @@ const STEPS: Record<number, (game: RawGame) => RawGame> = {
         }))
       : game.roster,
   }),
+
+  // Version 1 → 2 : Influence, Réseau, Succès et compteurs à vie (étape 7).
+  1: (game) => {
+    const { stats, ...rest } = game as RawGame & { stats?: { jackpots?: number } };
+    const roster = Array.isArray(game.roster) ? (game.roster as { rarity?: string; name?: string }[]) : [];
+    return {
+      ...rest,
+      influence: 0,
+      network: Object.fromEntries(NETWORK_IDS.map((id) => [id, 0])),
+      achievements: {},
+      lifetime: {
+        jackpots: stats?.jackpots ?? 0,
+        cash: D(0),
+        bestFloor: typeof game.highestCleared === 'number' ? game.highestCleared : 0,
+        launderings: 0,
+        recruitedRare: roster.some((p) => p.rarity && p.rarity !== 'common'),
+        recruitedEpic: roster.some((p) => p.rarity === 'epic' || p.rarity === 'legendary'),
+        legendaries: roster.filter((p) => p.rarity === 'legendary').map((p) => p.name ?? ''),
+      },
+    };
+  },
 };
 
 export type LoadError = 'invalid' | 'future-version';
@@ -49,7 +71,11 @@ function looksLikeGame(game: unknown): game is GameState {
     typeof g.office === 'object' &&
     typeof g.mastery === 'object' &&
     typeof g.items === 'object' &&
-    typeof g.buildings === 'object'
+    typeof g.buildings === 'object' &&
+    typeof g.influence === 'number' &&
+    typeof g.network === 'object' &&
+    typeof g.achievements === 'object' &&
+    typeof g.lifetime === 'object'
   );
 }
 

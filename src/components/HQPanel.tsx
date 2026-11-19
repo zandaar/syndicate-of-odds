@@ -8,6 +8,7 @@ import type { Player } from '../engine/types';
 import { RARITY_COLOR, RARITY_LABEL, className } from '../ui/labels';
 import { Button, Money, Panel, StatLine } from './common';
 import { BuildingsPanel, MasteryPanel, ShopPanel } from './QGPanels';
+import { AchievementsPanel, LaunderPanel, NetworkPanel } from './PrestigePanels';
 
 export function HQPanel({ game, dispatch, now }: { game: GameState; dispatch: (action: GameAction) => void; now: number }) {
   const scientific = game.settings.scientific;
@@ -43,9 +44,9 @@ export function HQPanel({ game, dispatch, now }: { game: GameState; dispatch: (a
       <BuildingsPanel game={game} dispatch={dispatch} />
       <ShopPanel game={game} dispatch={dispatch} />
       <MasteryPanel game={game} />
-      <Panel title="Succès">
-        <p className="text-sm text-stone-500">Bientôt.</p>
-      </Panel>
+      <LaunderPanel game={game} dispatch={dispatch} />
+      <NetworkPanel game={game} dispatch={dispatch} />
+      <AchievementsPanel game={game} />
     </div>
   );
 }
