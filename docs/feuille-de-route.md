@@ -2,8 +2,7 @@
 
 Dernière mise à jour : 19/11/2026, fin de l'étape 8. **La V1 est complète et jouable en local.**
 
-> **Le dépôt GitHub est toujours privé et le site désactivé** (fermé à la demande du créateur).
-> Rouvrir le site public est la prochaine décision : **ne rien publier sans son accord explicite** (procédure dans [CLAUDE.md](../CLAUDE.md)).
+> **Le jeu est en ligne : https://zandaar.github.io/syndicate-of-odds/** (dépôt public, rouvert le 19/11/2026 avec l'accord du créateur).
 
 ## Où on en est
 
@@ -11,7 +10,7 @@ Dernière mise à jour : 19/11/2026, fin de l'étape 8. **La V1 est complète et
 |---|---|
 | 0. Outils (Git, GitHub CLI, Node 26) | ✅ |
 | Conception : décisions Q1 à Q30, voir [spec-v1.md](spec-v1.md) | ✅ |
-| 1. Projet, dépôt, déploiement automatique | ✅ puis fermé (dépôt privé, Pages et workflow désactivés) |
+| 1. Projet, dépôt, déploiement automatique | ✅ (fermé un temps, rouvert à la fin de la V1) |
 | 2. Moteur + simulateur d'équilibrage | ✅ |
 | 3. Noms générés, Traits, Bureau de recrutement | ✅ |
 | 4. Interface jouable (3 colonnes PC, 3 onglets mobile) | ✅ |
@@ -19,7 +18,7 @@ Dernière mise à jour : 19/11/2026, fin de l'étape 8. **La V1 est complète et
 | 6. Sauvegarde locale, absence, export/import | ✅ |
 | 7. Blanchiment, Réseau, Succès (sauvegarde v2) | ✅ |
 | 8. Pixel art des Tables, icône, bulles d'aide, vérification mobile | ✅ (169 tests) |
-| ⏭️ **Rouvrir le site public** (Q30) | À confirmer par le créateur |
+| Rouvrir le site public (Q30) | ✅ En ligne |
 | Phase 2 : Firebase (comptes + sauvegarde cloud) | Plus tard |
 
 ## Carte du code
@@ -47,7 +46,7 @@ Dernière mise à jour : 19/11/2026, fin de l'étape 8. **La V1 est complète et
 
 ## Prochaines étapes possibles
 
-1. **Rouvrir le site public** : seulement sur accord explicite du créateur (voir CLAUDE.md), puis vérifier la mise en ligne.
+1. Faire jouer le créateur et recueillir ses retours (rythme, retour d'absence, lisibilité du pixel art).
 2. **Phase 2 — Firebase** : `CloudProvider` qui respecte `SaveProvider` ; connexion e-mail ou Google ; document `users/{uid}` ;
    écriture toutes les **60 s seulement si la partie a changé** + à la fermeture (la sauvegarde locale reste à 10 s) ;
    règles Firestore `allow read, write: if request.auth != null && request.auth.uid == userId;` ; clés dans un fichier de config séparé.

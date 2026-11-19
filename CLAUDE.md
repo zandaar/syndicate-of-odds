@@ -40,9 +40,9 @@ npm run build    # vérification des types + version en ligne
 
 ## Git et GitHub
 
-- ⚠️ **Dépôt privé, site fermé (depuis le 19/11/2026, à la demande du créateur)** : `zandaar/syndicate-of-odds` est **privé**, GitHub Pages est **désactivé** et le workflow de déploiement est **désactivé**. La V1 est finie ; le créateur doit dire explicitement « oui, rouvre le site » avant toute publication.
-- Pour rouvrir (seulement s'il le demande) : `gh repo edit zandaar/syndicate-of-odds --visibility public --accept-visibility-change-consequences`, puis `gh api -X POST repos/zandaar/syndicate-of-odds/pages -f build_type=workflow`, puis `gh workflow enable deploy.yml -R zandaar/syndicate-of-odds` et un push sur `main`. Sur un compte gratuit, GitHub Pages exige un dépôt public.
-- Branche `main`. Quand le workflow est actif, chaque push sur `main` teste, compile et publie (`.github/workflows/deploy.yml`).
+- **Site en ligne (rouvert le 19/11/2026 avec l'accord du créateur)** : dépôt **public** `zandaar/syndicate-of-odds`, jeu sur https://zandaar.github.io/syndicate-of-odds/. Tout ce qui est poussé sur `main` devient public et en ligne : vérifier l'absence d'informations personnelles avant chaque push.
+- Chaque push sur `main` teste, compile et publie (`.github/workflows/deploy.yml`) ; suivre le déploiement avec `gh run watch`.
+- Pour refermer (seulement s'il le demande) : `gh api -X DELETE repos/zandaar/syndicate-of-odds/pages`, `gh workflow disable deploy.yml -R zandaar/syndicate-of-odds`, puis `gh repo edit zandaar/syndicate-of-odds --visibility private --accept-visibility-change-consequences`.
 - L'e-mail de commit du dépôt est l'adresse noreply GitHub (déjà configurée dans `.git/config`) : ne jamais publier l'e-mail personnel.
 - `git push` est autorisé par `.claude/settings.local.json` (fichier personnel, non publié) **seulement s'il est lancé seul** : faire le commit dans une commande, puis `git push` dans une autre.
 - `gh` n'est pas dans le PATH du shell de Claude : utiliser `& "C:\Program Files\GitHub CLI\gh.exe"`.
